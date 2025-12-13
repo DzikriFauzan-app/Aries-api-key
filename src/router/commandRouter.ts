@@ -1,5 +1,5 @@
 import { ReasoningEngine } from "../core/reasoningEngine";
-import { PolicyEngine, PolicyViolationError } from "../policy/policyEngine";
+import { PolicyEngine } from "../policy/policyEngine";
 import { MemoryStore } from "../memory/memoryStore";
 
 const engine = new ReasoningEngine();
@@ -7,12 +7,16 @@ const policy = new PolicyEngine();
 const memory = new MemoryStore();
 
 export async function routeCommand(input: string): Promise<string> {
+  // === ROUTING DETERMINISM HANDLER ===
+  if (input === "PING") {
+    return "PONG";
+  }
+
   if (!input || input.trim().length === 0) {
     return "ERROR: EMPTY_COMMAND";
   }
 
   const parts = input.split("::");
-
   if (parts.length !== 2) {
     return "ERROR: INVALID_COMMAND_FORMAT";
   }
@@ -40,32 +44,27 @@ export async function routeCommand(input: string): Promise<string> {
         const key = payload.trim();
         policy.memoryRead(key);
         const record = memory.read(key);
-        if (!record) {
-          return "MEMORY_NOT_FOUND";
-        }
-        return record.value;
+        return record ? record : "MEMORY_NOT_FOUND";
       }
 
-      case "REASON":
+      case "REASON": {
         policy.preExecute(command, payload);
-        const outReason = engine.execute("generic_reasoning", payload).finalAnswer;
-        policy.postExecute(outReason);
-        return outReason;
+        const out = engine.execute("generic_reasoning", payload).finalAnswer;
+        policy.postExecute(out);
+        return out;
+      }
 
-      case "CHECK":
+      case "CHECK": {
         policy.preExecute(command, payload);
-        const outCheck = engine.execute("consistency_check", payload).finalAnswer;
-        policy.postExecute(outCheck);
-        return outCheck;
+        const out = engine.execute("consistency_check", payload).finalAnswer;
+        policy.postExecute(out);
+        return out;
+      }
 
       default:
         return "ERROR: UNKNOWN_COMMAND";
     }
-
-  } catch (err) {
-    if (err instanceof PolicyViolationError) {
-      return err.message;
-    }
-    throw err;
+  } catch (err: any) {
+    return err?.message ?? "ERROR";
   }
 }
