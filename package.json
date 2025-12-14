@@ -1,28 +1,10 @@
 {
   "name": "aries-api-key",
-  "version": "1.0.0",
-  "description": "Api key",
-  "main": "index.js",
+  "version": "0.1.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/DzikriFauzan-app/Aries-api-key.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/DzikriFauzan-app/Aries-api-key/issues"
-  },
-  "homepage": "https://github.com/DzikriFauzan-app/Aries-api-key#readme",
-  "devDependencies": {
-    "@types/node": "^25.0.1",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "undici-types": "^7.16.0"
+    "build": "tsc",
+    "test": "node dist/tests/policyEngine.test.js && node dist/tests/memory.test.js && node dist/tests/router.test.js && node dist/tests/reasoningEngine.test.js",
+    "benchmark": "ARIES_BENCH=1 node dist/tests/benchmark.test.js",
+    "ci": "npm run build && npm run test && npm run benchmark"
   }
 }
