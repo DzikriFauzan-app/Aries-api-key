@@ -1,33 +1,27 @@
 import { MemoryBackend } from "./memoryBackend";
-import { FileMemoryBackend } from "./fileMemoryBackend";
-import { homedir } from "os";
-import { join } from "path";
+import { MemoryRecord } from "./memoryTypes";
 
 export class MemoryStore {
-  private static instance: MemoryStore;
   private backend: MemoryBackend;
 
-  private constructor(backend: MemoryBackend) {
+  constructor(backend: MemoryBackend) {
     this.backend = backend;
   }
 
-  static get(): MemoryStore {
-    if (!this.instance) {
-      const path = join(homedir(), ".aries", "memory.json");
-      this.instance = new MemoryStore(new FileMemoryBackend(path));
-    }
-    return this.instance;
+  write(key: string, value: string): void {
+    const rec: MemoryRecord = {
+      key,
+      value,
+      ts: Date.now()
+    };
+    this.backend.write(rec);
   }
 
-  read(key: string): string | null {
+  read(key: string): MemoryRecord | undefined {
     return this.backend.read(key);
   }
 
-  write(key: string, value: string): void {
-    this.backend.write(key, value);
-  }
-
-  snapshot(): Record<string, string> {
+  snapshot(): MemoryRecord[] {
     return this.backend.snapshot();
   }
 }

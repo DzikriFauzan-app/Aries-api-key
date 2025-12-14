@@ -1,12 +1,7 @@
 import { routeCommand } from "./router/commandRouter";
+import { createDefaultMemory } from "./memory";
 
-async function main() {
-  const input = process.argv.slice(2).join(" ");
-  const result = await routeCommand(input);
-  console.log(result);
+export async function run(input: string) {
+  const memory = createDefaultMemory();
+  return await routeCommand(input, memory);
 }
-
-main().catch(err => {
-  console.error("ARIES FATAL ERROR:", err.message);
-  process.exit(1);
-});

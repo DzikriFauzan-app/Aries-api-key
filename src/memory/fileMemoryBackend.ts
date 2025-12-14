@@ -1,43 +1,32 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
-import { dirname } from "path";
+import fs from "fs";
 import { MemoryBackend } from "./memoryBackend";
+import { MemoryRecord } from "./memoryTypes";
 
 export class FileMemoryBackend implements MemoryBackend {
-  private path: string;
-  private cache: Record<string, string> = {};
+  private file: string;
+  private map = new Map<string, MemoryRecord>();
 
-  constructor(path: string) {
-    this.path = path;
-    this.ensure();
-    this.load();
+  constructor(file = "aries.memory.json") {
+    this.file = file;
+    if (fs.existsSync(file)) {
+      const raw = JSON.parse(fs.readFileSync(file, "utf-8"));
+      raw.forEach((r: MemoryRecord) => this.map.set(r.key, r));
+    }
   }
 
-  private ensure() {
-    const dir = dirname(this.path);
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    if (!existsSync(this.path)) writeFileSync(this.path, "{}");
+  write(rec: MemoryRecord): void {
+    this.map.set(rec.key, rec);
+    fs.writeFileSync(
+      this.file,
+      JSON.stringify(this.snapshot(), null, 2)
+    );
   }
 
-  private load() {
-    this.cache = JSON.parse(readFileSync(this.path, "utf-8") || "{}");
+  read(key: string): MemoryRecord | undefined {
+    return this.map.get(key);
   }
 
-  private flush() {
-    const ordered: Record<string, string> = {};
-    Object.keys(this.cache).sort().forEach(k => ordered[k] = this.cache[k]);
-    writeFileSync(this.path, JSON.stringify(ordered, null, 2));
-  }
-
-  read(key: string): string | null {
-    return this.cache[key] ?? null;
-  }
-
-  write(key: string, value: string): void {
-    this.cache[key] = value;
-    this.flush();
-  }
-
-  snapshot(): Record<string, string> {
-    return { ...this.cache };
+  snapshot(): MemoryRecord[] {
+    return Array.from(this.map.values());
   }
 }

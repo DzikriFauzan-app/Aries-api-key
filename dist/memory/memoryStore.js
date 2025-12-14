@@ -2,22 +2,22 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MemoryStore = void 0;
 class MemoryStore {
-    constructor() {
-        this.store = new Map();
+    constructor(backend) {
+        this.backend = backend;
     }
     write(key, value) {
-        const record = {
+        const rec = {
             key,
             value,
-            timestamp: Date.now()
+            ts: Date.now()
         };
-        this.store.set(key, record);
+        this.backend.write(rec);
     }
     read(key) {
-        return this.store.get(key) || null;
+        return this.backend.read(key);
     }
-    clear() {
-        this.store.clear();
+    snapshot() {
+        return this.backend.snapshot();
     }
 }
 exports.MemoryStore = MemoryStore;

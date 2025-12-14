@@ -2,8 +2,8 @@
   "name": "aries-api-key",
   "version": "0.1.0",
   "scripts": {
-    "build": "tsc",
-    "test": "node dist/tests/policyEngine.test.js && node dist/tests/memory.test.js && node dist/tests/router.test.js && node dist/tests/reasoningEngine.test.js",
+    "build": "tsc -p tsconfig.json",
+    "test": "node -e \"require('fs').readdirSync('dist/tests').filter(f=>f.endsWith('.test.js')).sort().forEach(f=>{console.log('[TEST]',f); require('./dist/tests/'+f);})\"",
     "benchmark": "ARIES_BENCH=1 node dist/tests/benchmark.test.js",
     "ci": "npm run build && npm run test && npm run benchmark"
   }

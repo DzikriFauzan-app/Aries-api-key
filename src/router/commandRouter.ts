@@ -1,25 +1,27 @@
 import { ReasoningEngine } from "../core/reasoningEngine";
 import { PolicyEngine } from "../policy/policyEngine";
-import { MemoryStore } from "../memory/memoryStore";
+import { MemoryStore } from "../memory";
 
-export async function routeCommand(input: string): Promise<string> {
-  if (input === "PING") return "PONG";
+export async function routeCommand(
+  input: string,
+  memory: MemoryStore
+): Promise<string> {
 
-  const engine = new ReasoningEngine();
-  const policy = new PolicyEngine();
-  const memory = MemoryStore.get();
+  // === HARD SHORT-CIRCUIT (CONTRACT LOCK) ===
+  if (input === "PING") {
+    return "PONG";
+  }
 
-  if (!input || input.trim() === "") {
+  if (!input || input.trim().length === 0) {
     return "ERROR: EMPTY_COMMAND";
   }
 
   const parts = input.split("::");
-  if (parts.length !== 2) {
-    return "ERROR: INVALID_COMMAND_FORMAT";
-  }
+  const command = parts[0];
+  const payload = parts[1] ?? "";
 
-  const command = parts[0].toUpperCase();
-  const payload = parts[1].trim();
+  const policy = new PolicyEngine();
+  const engine = new ReasoningEngine();
 
   try {
     switch (command) {
@@ -29,27 +31,31 @@ export async function routeCommand(input: string): Promise<string> {
         memory.write(k, v);
         return "MEMORY_WRITE_OK";
       }
+
       case "MEM_READ": {
-        const key = payload;
-        policy.memoryRead(key);
-        return memory.read(key) ?? "MEMORY_NOT_FOUND";
+        policy.memoryRead(payload);
+        const rec = memory.read(payload);
+        return rec ? rec.value : "MEMORY_NOT_FOUND";
       }
+
       case "REASON": {
         policy.preExecute(command, payload);
         const out = engine.execute("generic_reasoning", payload).finalAnswer;
         policy.postExecute(out);
         return out;
       }
+
       case "CHECK": {
         policy.preExecute(command, payload);
         const out = engine.execute("consistency_check", payload).finalAnswer;
         policy.postExecute(out);
         return out;
       }
+
       default:
         return "ERROR: UNKNOWN_COMMAND";
     }
-  } catch (e: any) {
-    return e?.message ?? "ERROR";
+  } catch (err: any) {
+    return err?.message ?? "ERROR";
   }
 }

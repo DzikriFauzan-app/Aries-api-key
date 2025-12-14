@@ -7,41 +7,27 @@ export class PolicyViolationError extends Error {
 
 export class PolicyEngine {
 
-  public preExecute(command: string, payload: string): void {
-    if (!payload || payload.trim().length === 0) {
+  preExecute(command: string, payload: string): void {
+    if (!payload || payload.length === 0) {
       throw new PolicyViolationError("POLICY_DENY: EMPTY_PAYLOAD");
     }
-
-    if (payload.length > 500) {
+    if (payload.length > 512) {
       throw new PolicyViolationError("POLICY_DENY: PAYLOAD_TOO_LONG");
     }
   }
 
-  public postExecute(output: string): void {
-    if (!output || output.trim().length === 0) {
-      throw new PolicyViolationError("POLICY_DENY: EMPTY_OUTPUT");
-    }
+  postExecute(_output: string): void {
+    // reserved for audit / future enforcement
+  }
 
-    if (!output.startsWith("ANSWER(")) {
-      throw new PolicyViolationError("POLICY_DENY: INVALID_OUTPUT_FORMAT");
+  memoryWrite(key: string, value: string): void {
+    if (!key || !value) {
+      throw new PolicyViolationError("POLICY_DENY: INVALID_MEMORY_WRITE");
     }
   }
 
-  // MEMORY POLICIES
-  public memoryWrite(key: string, value: string): void {
-    if (!key || key.trim().length === 0) {
-      throw new PolicyViolationError("POLICY_DENY: EMPTY_MEMORY_KEY");
-    }
-    if (!value || value.trim().length === 0) {
-      throw new PolicyViolationError("POLICY_DENY: EMPTY_MEMORY_VALUE");
-    }
-    if (value.length > 1000) {
-      throw new PolicyViolationError("POLICY_DENY: MEMORY_VALUE_TOO_LONG");
-    }
-  }
-
-  public memoryRead(key: string): void {
-    if (!key || key.trim().length === 0) {
+  memoryRead(key: string): void {
+    if (!key || key.length === 0) {
       throw new PolicyViolationError("POLICY_DENY: EMPTY_MEMORY_KEY");
     }
   }
