@@ -1,26 +1,33 @@
-export interface MemoryRecord {
-  key: string;
-  value: string;
-  timestamp: number;
-}
+import { MemoryBackend } from "./memoryBackend";
+import { FileMemoryBackend } from "./fileMemoryBackend";
+import { homedir } from "os";
+import { join } from "path";
 
 export class MemoryStore {
-  private store: Map<string, MemoryRecord> = new Map();
+  private static instance: MemoryStore;
+  private backend: MemoryBackend;
 
-  public write(key: string, value: string): void {
-    const record: MemoryRecord = {
-      key,
-      value,
-      timestamp: Date.now()
-    };
-    this.store.set(key, record);
+  private constructor(backend: MemoryBackend) {
+    this.backend = backend;
   }
 
-  public read(key: string): MemoryRecord | null {
-    return this.store.get(key) || null;
+  static get(): MemoryStore {
+    if (!this.instance) {
+      const path = join(homedir(), ".aries", "memory.json");
+      this.instance = new MemoryStore(new FileMemoryBackend(path));
+    }
+    return this.instance;
   }
 
-  public clear(): void {
-    this.store.clear();
+  read(key: string): string | null {
+    return this.backend.read(key);
+  }
+
+  write(key: string, value: string): void {
+    this.backend.write(key, value);
+  }
+
+  snapshot(): Record<string, string> {
+    return this.backend.snapshot();
   }
 }
