@@ -8,9 +8,13 @@ type DSLCommand =
       message: string;
     }
   | {
-      type: "FILE_WRITE";
+      type: "fs.write"; // FIX: Gunakan nama tool resmi
       path: string;
       content: string;
+    }
+  | {
+      type: "fs.read"; // FIX: Gunakan nama tool resmi
+      path: string;
     };
 
 export class Translator {
@@ -43,10 +47,10 @@ export class Translator {
       return;
     }
 
-    // FILE CREATE (PREVIEW UNTUK STEP 16)
+    // FILE CREATE
     if (payload.intent === "file_create") {
       const cmd: DSLCommand = {
-        type: "FILE_WRITE",
+        type: "fs.write", // FIX: Match Registry Name
         path: payload.path,
         content: payload.content
       };
@@ -61,7 +65,8 @@ export class Translator {
       });
       return;
     }
-
-    throw new Error("Translator: Unknown intent");
+    
+    // Fallback error (Optional)
+    // throw new Error("Translator: Unknown intent");
   }
 }

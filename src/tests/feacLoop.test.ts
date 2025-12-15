@@ -1,41 +1,82 @@
 import { EventBus } from "../events/eventBus";
-import { FeacLoop } from "../feac/feacLoop";
+import { AriesGateway } from "../gateway/server";
+import { ReasoningOrchestrator } from "../reasoning/reasoningOrchestrator";
+import { Translator } from "../translator/translator";
+import { MockProvider } from "../llm/providers/mockProvider";
 import { AriesEvent } from "../events/eventTypes";
 
 (async () => {
-  console.log("[TEST] FEAC LOOP");
+  console.log("[TEST] FEAC LOOP INTEGRATION (Step 15.5 - Updated)");
 
   const bus = new EventBus();
+  const mockLLM = new MockProvider();
+  
+  // Port 0 random
+  const gateway = new AriesGateway(bus, 0); 
+  const reasoning = new ReasoningOrchestrator(bus, mockLLM);
+  const translator = new Translator(bus);
+
+  reasoning.start();
+  translator.start();
+  
+  // NOTE: Kita tidak perlu menyalakan FEAC Loop class manual di sini
+  // karena test ini HANYA menguji integrasi sampai TRANSLATOR emit TASK_ASSIGNED
+  // NAMUN, jika judulnya FEAC LOOP, kita harus memastikan sampai TASK_APPROVED.
+  
+  // Load FEAC Class
+  const { FeacLoop } = require("../feac/feacLoop");
   const feac = new FeacLoop(bus);
-
-  let approved: AriesEvent | null = null;
-
-  bus.subscribe("TASK_APPROVED", async (evt) => {
-    approved = evt;
-  });
-
   feac.start();
 
-  await bus.publish({
-    id: "task-1",
-    type: "TASK_ASSIGNED",
-    source: "REASONING",
-    timestamp: Date.now(),
-    correlationId: "sess-42",
+  let finalOutput: AriesEvent | null = null;
+  bus.subscribe("TASK_APPROVED", async (evt) => {
+    finalOutput = evt;
+  });
+
+  // MOCK LLM Response (Valid Chat)
+  mockLLM.queueResponse(JSON.stringify({
+    intent: "chat",
+    action: "RESPOND",
+    target: null,
+    message: "Halo User, saya Aries."
+  }));
+
+  console.log("-> Injecting Request to Gateway...");
+  const app = gateway.getServer();
+  
+  const response = await app.inject({
+    method: 'POST',
+    url: '/v1/command',
+    headers: { 'x-aries-key': 'aries-master-key-123' }, // AUTH STEP 19
     payload: {
-      action: "WRITE_FILE",
-      path: "/sandbox/a.txt",
-      content: "hello"
+      session_id: "feac-session-123",
+      user_id: "admin",
+      input: "Siapa kamu?"
     }
   });
 
-  if (!approved) {
-    throw new Error("FEAC did not approve task");
+  if (response.statusCode !== 202) {
+    throw new Error(`Gateway rejected request: ${response.statusCode}`);
   }
 
-  if ((approved as any).payload.action !== "WRITE_FILE") {
-    throw new Error("Payload corrupted");
+  // Tunggu async processes
+  await new Promise(r => setTimeout(r, 200));
+
+  if (!finalOutput) {
+    throw new Error("FEAC Loop Timeout: No TASK_APPROVED event received");
   }
 
-  console.log("FEAC LOOP TEST PASSED");
+  const result = (finalOutput as any).payload;
+  
+  // Translator -> RESPOND -> FEAC (Allow Null Scope for RESPOND) -> Approved
+  if (result.type !== "RESPOND") {
+    throw new Error(`Wrong output type. Expected RESPOND, got ${result.type}`);
+  }
+
+  // Cek Signature (Step 19 Requirement)
+  if (!result.authority || !result.authority.signature) {
+    throw new Error("Missing Authority Signature on Approved Task");
+  }
+
+  console.log("FEAC LOOP INTEGRATION TEST PASSED");
 })();

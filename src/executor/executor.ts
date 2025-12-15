@@ -1,20 +1,24 @@
 import { EventBus } from "../events/eventBus";
 import { AriesEvent } from "../events/eventTypes";
 import { getFsTool } from "../tools/fs/fsRegistry";
-import { Sandbox } from "../sandbox/sandbox"; // Import Sandbox
-import { SandboxError } from "../sandbox/sandboxError"; // Import Error Type
+import { Sandbox } from "../sandbox/sandbox";
+import { SandboxError } from "../sandbox/sandboxError";
+import { verifyPayload } from "../auth/authority";
 import { randomUUID } from "crypto";
 
 type ExecutionPayload = {
   type: string;
   params: any;
+  authority?: {
+    keyId: string;
+    signature: string;
+  };
 };
 
 export class Executor {
-  private sandbox: Sandbox; // Pakai Sandbox, bukan path string
+  private sandbox: Sandbox;
 
   constructor(private bus: EventBus, rootPath: string = "workspace") {
-    // Inisialisasi Sandbox di sini
     this.sandbox = new Sandbox(rootPath);
   }
 
@@ -29,11 +33,20 @@ export class Executor {
     const toolName = payload.type as any;
 
     try {
+      // 1. ZERO TRUST VERIFICATION
+      if (!payload.authority) {
+        throw new Error("Security Violation: Unsigned Task");
+      }
+
+      const isValid = verifyPayload(payload.params || {}, payload.authority.keyId, payload.authority.signature);
+      
+      if (!isValid) {
+        throw new Error("Security Violation: Invalid Signature (Task Tampered)");
+      }
+
+      // 2. Execution (Sandbox)
       const toolDef = getFsTool(toolName);
       const params = payload.params || {};
-
-      // EXECUTOR TIDAK LAGI URUS PATH RESOLUTION ATAU FS NATIVE
-      // SEMUA DISERAHKAN KE SANDBOX
       
       let result: any;
       if (toolName === "fs.read") {
@@ -59,9 +72,7 @@ export class Executor {
 
     } catch (error: any) {
       console.error("[Executor] Error:", error.message);
-      
-      // Bedakan error sandbox vs error lain jika perlu
-      const isSecurity = error instanceof SandboxError;
+      const isSecurity = error.message.includes("Security Violation") || error instanceof SandboxError;
       
       await this.bus.publish({
         id: randomUUID(),

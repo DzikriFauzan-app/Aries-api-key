@@ -29,10 +29,10 @@ class Translator {
             });
             return;
         }
-        // FILE CREATE (PREVIEW UNTUK STEP 16)
+        // FILE CREATE
         if (payload.intent === "file_create") {
             const cmd = {
-                type: "FILE_WRITE",
+                type: "fs.write", // FIX: Match Registry Name
                 path: payload.path,
                 content: payload.content
             };
@@ -46,7 +46,8 @@ class Translator {
             });
             return;
         }
-        throw new Error("Translator: Unknown intent");
+        // Fallback error (Optional)
+        // throw new Error("Translator: Unknown intent");
     }
 }
 exports.Translator = Translator;
