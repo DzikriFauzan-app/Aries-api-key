@@ -21,7 +21,8 @@ export class ReasoningOrchestrator {
   ) {}
 
   start() {
-    this.bus.subscribe("AGENT_COMMAND", async (evt) => {
+    // FIX: Type annotation
+    this.bus.subscribe("AGENT_COMMAND", async (evt: AriesEvent) => {
       await this.handle(evt);
     });
   }
@@ -50,7 +51,13 @@ ${payload.input}
       temperature: 0
     });
 
-    const parsed = JSON.parse(res.text) as ReasoningResult;
+    let parsed: ReasoningResult;
+    try {
+       parsed = JSON.parse(res.text) as ReasoningResult;
+    } catch {
+       // Fallback jika LLM halusinasi
+       parsed = { intent: "error", action: "RESPOND", target: null, message: "I am confused." };
+    }
 
     await this.bus.publish({
       id: randomUUID(),

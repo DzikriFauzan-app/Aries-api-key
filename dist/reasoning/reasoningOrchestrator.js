@@ -8,6 +8,7 @@ class ReasoningOrchestrator {
         this.llm = llm;
     }
     start() {
+        // FIX: Type annotation
         this.bus.subscribe("AGENT_COMMAND", async (evt) => {
             await this.handle(evt);
         });
@@ -33,7 +34,14 @@ ${payload.input}
             prompt,
             temperature: 0
         });
-        const parsed = JSON.parse(res.text);
+        let parsed;
+        try {
+            parsed = JSON.parse(res.text);
+        }
+        catch {
+            // Fallback jika LLM halusinasi
+            parsed = { intent: "error", action: "RESPOND", target: null, message: "I am confused." };
+        }
         await this.bus.publish({
             id: (0, crypto_1.randomUUID)(),
             type: "AGENT_RESPONSE",

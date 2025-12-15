@@ -6,7 +6,8 @@ export class FeacLoop {
   constructor(private bus: EventBus) {}
 
   start() {
-    this.bus.subscribe("TASK_ASSIGNED", async (evt) => {
+    // FIX: Type annotation
+    this.bus.subscribe("TASK_ASSIGNED", async (evt: AriesEvent) => {
       await this.bus.publish({
         id: randomUUID(),
         type: "TASK_APPROVED",

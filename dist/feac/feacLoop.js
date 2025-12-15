@@ -7,6 +7,7 @@ class FeacLoop {
         this.bus = bus;
     }
     start() {
+        // FIX: Type annotation
         this.bus.subscribe("TASK_ASSIGNED", async (evt) => {
             await this.bus.publish({
                 id: (0, crypto_1.randomUUID)(),
