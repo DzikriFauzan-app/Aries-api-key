@@ -1,84 +1,56 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
+const eventBus_1 = require("../events/eventBus");
 const memoryController_1 = require("../memory/memoryController");
-const memoryStore_1 = require("../memory/memoryStore");
-const fileMemoryBackend_1 = require("../memory/fileMemoryBackend");
-const permissionMatrix_1 = require("../policy/permissionMatrix");
-const agentPolicyBinder_1 = require("../policy/agentPolicyBinder");
-const auditLogger_1 = require("../audit/auditLogger");
-const agent_1 = require("../agent/agent");
-const fs = __importStar(require("fs")); // Tambahkan FS
-class TestAgent extends agent_1.Agent {
-    async handle() {
-        return "";
-    }
-}
-(() => {
-    const DB_FILE = ".test_memory.json";
-    // FIX: Hapus file sampah sisa test sebelumnya agar mulai dari 0
-    if (fs.existsSync(DB_FILE)) {
-        fs.unlinkSync(DB_FILE);
-    }
-    const backend = new fileMemoryBackend_1.FileMemoryBackend(DB_FILE);
-    const store = new memoryStore_1.MemoryStore(backend);
-    const matrix = new permissionMatrix_1.PermissionMatrix();
-    matrix.register({
-        agent: "alpha",
-        role: "WORKER",
-        allow: ["MEMORY_WRITE", "MEMORY_READ"]
+(async () => {
+    console.log("[TEST] MEMORY CONTROLLER (Refactored for Step 20)");
+    const bus = new eventBus_1.EventBus();
+    const memory = new memoryController_1.MemoryController(bus);
+    memory.start();
+    let readResult = null;
+    bus.subscribe("MEMORY_RESULT", async (e) => { readResult = e; });
+    // 1. TEST WRITE (Gantikan memory.remember)
+    console.log("-> Testing Write (via Event)...");
+    await bus.publish({
+        id: "leg-1",
+        type: "MEMORY_WRITE",
+        source: "TEST_LEGACY",
+        timestamp: Date.now(),
+        correlationId: "sess-legacy",
+        payload: {
+            action: "MEMORY_WRITE",
+            scope: "SESSION",
+            key: "sess-legacy:data1",
+            value: "HELLO WORLD",
+            authority: { signature: "bypass-test", scope: "SESSION", issuedAt: Date.now() }
+        }
     });
-    const audit = new auditLogger_1.AuditLogger();
-    const policy = new agentPolicyBinder_1.AgentPolicyBinder(matrix, audit);
-    const memory = new memoryController_1.MemoryController(store, policy, audit);
-    const agent = new TestAgent("alpha", "WORKER");
-    memory.remember(agent, "HELLO");
-    memory.remember(agent, "WORLD");
-    const recall = memory.recall(agent);
-    // Debug jika gagal lagi (biar kita tahu isinya apa)
-    if (recall.length !== 2) {
-        console.error("RECALL CONTENT:", recall);
-        throw new Error(`RECALL FAILED: Expected 2, got ${recall.length}`);
-    }
-    memory.prune(1);
-    const recall2 = memory.recall(agent);
-    if (recall2.length !== 1)
-        throw new Error("PRUNE FAILED");
-    // Cleanup setelah selesai
-    if (fs.existsSync(DB_FILE)) {
-        fs.unlinkSync(DB_FILE);
+    // Tunggu sebentar
+    await new Promise(r => setTimeout(r, 50));
+    if (!readResult)
+        throw new Error("Write failed (No Result Event)");
+    // 2. TEST READ (Gantikan memory.recall)
+    readResult = null;
+    console.log("-> Testing Read (via Event)...");
+    await bus.publish({
+        id: "leg-2",
+        type: "MEMORY_READ",
+        source: "TEST_LEGACY",
+        timestamp: Date.now(),
+        correlationId: "sess-legacy",
+        payload: {
+            action: "MEMORY_READ",
+            scope: "SESSION",
+            key: "sess-legacy:data1",
+            authority: { signature: "bypass-test", scope: "SESSION", issuedAt: Date.now() }
+        }
+    });
+    await new Promise(r => setTimeout(r, 50));
+    if (!readResult)
+        throw new Error("Read failed (No Result Event)");
+    const content = readResult.payload.result;
+    if (content !== "HELLO WORLD") {
+        throw new Error(`Content Mismatch: Got ${content}`);
     }
     console.log("MEMORY CONTROLLER TEST PASSED");
 })();

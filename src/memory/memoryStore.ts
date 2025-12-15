@@ -1,26 +1,52 @@
-import { MemoryBackend } from "./memoryBackend";
-import { MemoryRecord } from "./memoryRecord";
+import * as fs from "fs";
+import * as path from "path";
 
 export class MemoryStore {
-  constructor(private backend: MemoryBackend) {}
+  private store = new Map<string, any>();
+  private filePath: string;
 
-  read(key: string): MemoryRecord | undefined {
-    return this.backend.read(key);
+  constructor(filePath: string = ".aries_memory_v2.json") {
+    this.filePath = path.resolve(process.cwd(), filePath);
+    this.load();
   }
 
-  write(rec: MemoryRecord): void {
-    this.backend.write(rec);
+  private load() {
+    if (fs.existsSync(this.filePath)) {
+      try {
+        const data = fs.readFileSync(this.filePath, "utf-8");
+        const raw = JSON.parse(data);
+        for (const [k, v] of Object.entries(raw)) {
+          this.store.set(k, v);
+        }
+      } catch (e) {
+        console.error("Failed to load memory store:", e);
+      }
+    }
   }
 
-  delete(key: string): void {
-    this.backend.delete(key);
+  private save() {
+    // Simple Sync Save for now (Optimize later to Async/Debounce)
+    const obj = Object.fromEntries(this.store);
+    fs.writeFileSync(this.filePath, JSON.stringify(obj, null, 2));
   }
 
-  snapshot(): MemoryRecord[] {
-    return this.backend.snapshot();
+  read(key: string) {
+    return this.store.get(key);
   }
 
-  replace(all: MemoryRecord[]): void {
-    this.backend.replace(all);
+  write(key: string, value: any) {
+    this.store.set(key, value);
+    this.save();
+  }
+
+  clearByPrefix(prefix: string) {
+    let changed = false;
+    for (const k of this.store.keys()) {
+      if (k.startsWith(prefix)) {
+        this.store.delete(k);
+        changed = true;
+      }
+    }
+    if (changed) this.save();
   }
 }

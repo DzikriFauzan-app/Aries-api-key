@@ -1,3 +1,5 @@
+/* ARCHIVED LEGACY TEST
+
 import { MemoryRetention } from "../memory/memoryRetention";
 import { MemoryRecord } from "../memory/memoryRecord";
 
@@ -17,3 +19,4 @@ import { MemoryRecord } from "../memory/memoryRecord";
 
   console.log("MEMORY RETENTION TEST PASSED");
 })();
+*/

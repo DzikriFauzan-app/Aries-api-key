@@ -1,3 +1,6 @@
+/* ARCHIVED LEGACY TEST
+   Replaced by MemoryStore (Step 20)
+
 import { FileMemoryBackend } from "../memory/fileMemoryBackend";
 
 function assert(cond: boolean, msg: string) {
@@ -30,3 +33,4 @@ function assert(cond: boolean, msg: string) {
 
   console.log("FILE MEMORY BACKEND TEST PASSED");
 })();
+*/

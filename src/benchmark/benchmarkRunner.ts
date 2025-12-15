@@ -1,40 +1,84 @@
-import { benchmarkCases } from "./benchmarkCases";
-import { routeCommand } from "../router/commandRouter";
-import { MemoryStore } from "../memory/memoryStore";
-import { FileMemoryBackend } from "../memory/fileMemoryBackend";
+import { EventBus } from "../events/eventBus";
+import { MemoryController } from "../memory/memoryController";
+import { AriesEvent } from "../events/eventTypes";
+import { randomUUID } from "crypto";
 
-export async function runBenchmarks(): Promise<void> {
-  let passed = 0;
-  let failed = 0;
+export class BenchmarkRunner {
+  private bus: EventBus;
+  private memory: MemoryController;
 
-  // BENCHMARK HARUS PAKAI BACKEND NYATA
-  const backend = new FileMemoryBackend(".aries_bench_mem.json");
-  const memory = new MemoryStore(backend);
-
-  for (const testCase of benchmarkCases) {
-    const repeat = testCase.repeat ?? 1;
-
-    for (let i = 0; i < repeat; i++) {
-      try {
-        const output: string = await routeCommand(
-          testCase.input,
-          memory
-        );
-
-        if (testCase.expectedPattern.test(output)) {
-          passed++;
-        } else {
-          failed++;
-        }
-      } catch {
-        failed++;
-      }
-    }
+  constructor() {
+    this.bus = new EventBus();
+    this.memory = new MemoryController(this.bus);
+    this.memory.start();
   }
 
-  console.log({ total: passed + failed, passed, failed });
+  async run() {
+    console.log("Starting Aries Benchmark (Event-Driven)...");
 
-  if (failed > 0) {
-    throw new Error("BENCHMARK TEST COMPLETED WITH FAILURES");
+    const iterations = 1000;
+    const start = process.hrtime();
+    let completed = 0;
+    let errors = 0;
+
+    const donePromise = new Promise<void>((resolve) => {
+      // Listener Sukses
+      this.bus.subscribe("MEMORY_RESULT", async () => {
+        completed++;
+        checkDone();
+      });
+      
+      // Listener Gagal (PENTING: Agar tidak hang jika kena policy)
+      this.bus.subscribe("MEMORY_DENIED", async (evt: AriesEvent) => {
+        completed++;
+        errors++;
+        // Print error pertama untuk debug
+        if (errors === 1) console.error("[Bench Error Sample]", (evt.payload as any).error);
+        checkDone();
+      });
+
+      function checkDone() {
+        if (completed >= iterations) resolve();
+      }
+    });
+
+    // Blast 1000 Events
+    // FIX: Gunakan Key yang sesuai Policy (SessionID + :)
+    const sessionId = "bench-sess";
+    
+    for (let i = 0; i < iterations; i++) {
+      this.bus.publish({
+        id: randomUUID(),
+        type: "MEMORY_WRITE",
+        source: "BENCHMARK",
+        timestamp: Date.now(),
+        correlationId: sessionId,
+        payload: {
+          action: "MEMORY_WRITE",
+          scope: "SESSION",
+          key: `${sessionId}:data:${i}`, // FIX: Prefix Matching
+          value: "payload_data",
+          authority: {
+            signature: "bench-sig",
+            scope: "SESSION",
+            issuedAt: Date.now()
+          }
+        }
+      });
+    }
+
+    await donePromise;
+
+    const [seconds, nanoseconds] = process.hrtime(start);
+    const totalMs = seconds * 1000 + nanoseconds / 1e6;
+    const throughput = (iterations / (totalMs / 1000)).toFixed(2);
+    
+    console.log(`\nBenchmark Results:`);
+    console.log(`- Operations: ${iterations}`);
+    console.log(`- Errors:     ${errors}`);
+    console.log(`- Total Time: ${totalMs.toFixed(2)}ms`);
+    console.log(`- Throughput: ${throughput} ops/sec`);
+    
+    if (errors > 0) throw new Error("Benchmark finished with errors!");
   }
 }

@@ -1,6 +1,5 @@
 "use strict";
 /**
- * TYPE DEFINITIONS FINAL (Step 17)
- * Mencakup seluruh siklus hidup: Gateway -> Reasoning -> FEAC -> Executor
+ * TYPE DEFINITIONS FINAL (Step 20)
  */
 Object.defineProperty(exports, "__esModule", { value: true });

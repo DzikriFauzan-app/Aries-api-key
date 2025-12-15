@@ -1,60 +1,62 @@
+import { EventBus } from "../events/eventBus";
 import { MemoryController } from "../memory/memoryController";
-import { MemoryStore } from "../memory/memoryStore";
-import { FileMemoryBackend } from "../memory/fileMemoryBackend";
-import { PermissionMatrix } from "../policy/permissionMatrix";
-import { AgentPolicyBinder } from "../policy/agentPolicyBinder";
-import { AuditLogger } from "../audit/auditLogger";
-import { Agent } from "../agent/agent";
-import * as fs from "fs"; // Tambahkan FS
+import { AriesEvent } from "../events/eventTypes";
 
-class TestAgent extends Agent {
-  async handle(): Promise<string> {
-    return "";
-  }
-}
+(async () => {
+  console.log("[TEST] MEMORY CONTROLLER (Refactored for Step 20)");
 
-(() => {
-  const DB_FILE = ".test_memory.json";
+  const bus = new EventBus();
+  const memory = new MemoryController(bus);
+  memory.start();
 
-  // FIX: Hapus file sampah sisa test sebelumnya agar mulai dari 0
-  if (fs.existsSync(DB_FILE)) {
-    fs.unlinkSync(DB_FILE);
-  }
+  let readResult: AriesEvent | null = null;
+  bus.subscribe("MEMORY_RESULT", async (e: AriesEvent) => { readResult = e; });
 
-  const backend = new FileMemoryBackend(DB_FILE);
-  const store = new MemoryStore(backend);
-
-  const matrix = new PermissionMatrix();
-  matrix.register({
-    agent: "alpha",
-    role: "WORKER",
-    allow: ["MEMORY_WRITE", "MEMORY_READ"]
+  // 1. TEST WRITE (Gantikan memory.remember)
+  console.log("-> Testing Write (via Event)...");
+  await bus.publish({
+    id: "leg-1",
+    type: "MEMORY_WRITE",
+    source: "TEST_LEGACY",
+    timestamp: Date.now(),
+    correlationId: "sess-legacy",
+    payload: {
+      action: "MEMORY_WRITE",
+      scope: "SESSION",
+      key: "sess-legacy:data1",
+      value: "HELLO WORLD",
+      authority: { signature: "bypass-test", scope: "SESSION", issuedAt: Date.now() }
+    }
   });
 
-  const audit = new AuditLogger();
-  const policy = new AgentPolicyBinder(matrix, audit);
-
-  const memory = new MemoryController(store, policy, audit);
-  const agent = new TestAgent("alpha", "WORKER");
-
-  memory.remember(agent, "HELLO");
-  memory.remember(agent, "WORLD");
-
-  const recall = memory.recall(agent);
+  // Tunggu sebentar
+  await new Promise(r => setTimeout(r, 50));
+  if (!readResult) throw new Error("Write failed (No Result Event)");
   
-  // Debug jika gagal lagi (biar kita tahu isinya apa)
-  if (recall.length !== 2) {
-    console.error("RECALL CONTENT:", recall);
-    throw new Error(`RECALL FAILED: Expected 2, got ${recall.length}`);
-  }
+  // 2. TEST READ (Gantikan memory.recall)
+  readResult = null;
+  console.log("-> Testing Read (via Event)...");
+  await bus.publish({
+    id: "leg-2",
+    type: "MEMORY_READ",
+    source: "TEST_LEGACY",
+    timestamp: Date.now(),
+    correlationId: "sess-legacy",
+    payload: {
+      action: "MEMORY_READ",
+      scope: "SESSION",
+      key: "sess-legacy:data1",
+      authority: { signature: "bypass-test", scope: "SESSION", issuedAt: Date.now() }
+    }
+  });
 
-  memory.prune(1);
-  const recall2 = memory.recall(agent);
-  if (recall2.length !== 1) throw new Error("PRUNE FAILED");
-
-  // Cleanup setelah selesai
-  if (fs.existsSync(DB_FILE)) {
-    fs.unlinkSync(DB_FILE);
+  await new Promise(r => setTimeout(r, 50));
+  
+  if (!readResult) throw new Error("Read failed (No Result Event)");
+  const content = (readResult as any).payload.result;
+  
+  if (content !== "HELLO WORLD") {
+    throw new Error(`Content Mismatch: Got ${content}`);
   }
 
   console.log("MEMORY CONTROLLER TEST PASSED");
