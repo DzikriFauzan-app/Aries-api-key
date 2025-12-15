@@ -1,0 +1,13 @@
+[
+  {
+    "key": "alpha:1765811040177:442628",
+    "agent": "alpha",
+    "role": "WORKER",
+    "content": "HELLO",
+    "value": "HELLO",
+    "ts": 1765811040177,
+    "score": 100,
+    "hits": 1,
+    "lastAccess": 1765811040179
+  }
+]

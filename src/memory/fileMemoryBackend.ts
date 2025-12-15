@@ -1,41 +1,47 @@
+import fs from "fs";
 import { MemoryBackend } from "./memoryBackend";
-import { MemoryRecord } from "./memoryTypes";
-import * as fs from "fs";
+import { MemoryRecord } from "./memoryRecord";
 
 export class FileMemoryBackend implements MemoryBackend {
   private map = new Map<string, MemoryRecord>();
 
   constructor(private file: string) {
     if (fs.existsSync(file)) {
-      const raw: MemoryRecord[] = JSON.parse(
-        fs.readFileSync(file, "utf-8")
-      );
-      raw.forEach(r => {
-        if (r.key) {
-          this.map.set(r.key, r);
-        }
-      });
+      const raw = JSON.parse(fs.readFileSync(file, "utf8")) as MemoryRecord[];
+      raw.forEach(r => this.map.set(r.key, r));
     }
   }
 
+  read(key: string): MemoryRecord | undefined {
+    const rec = this.map.get(key);
+    if (!rec) return undefined;
+
+    rec.hits++;
+    rec.lastAccess = Date.now();
+    return rec;
+  }
+
   write(rec: MemoryRecord): void {
-    if (!rec.key) return;
     this.map.set(rec.key, rec);
     this.flush();
   }
 
-  read(key: string): MemoryRecord | undefined {
-    return this.map.get(key);
+  delete(key: string): void {
+    this.map.delete(key);
+    this.flush();
   }
 
   snapshot(): MemoryRecord[] {
-    return [...this.map.values()];
+    return Array.from(this.map.values());
+  }
+
+  replace(all: MemoryRecord[]): void {
+    this.map.clear();
+    all.forEach(r => this.map.set(r.key, r));
+    this.flush();
   }
 
   private flush(): void {
-    fs.writeFileSync(
-      this.file,
-      JSON.stringify(this.snapshot(), null, 2)
-    );
+    fs.writeFileSync(this.file, JSON.stringify(this.snapshot(), null, 2));
   }
 }
