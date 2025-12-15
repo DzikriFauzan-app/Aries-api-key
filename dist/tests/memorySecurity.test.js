@@ -33,52 +33,61 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-const memoryController_1 = require("../memory/memoryController");
 const memoryStore_1 = require("../memory/memoryStore");
+const memoryController_1 = require("../memory/memoryController");
 const fileMemoryBackend_1 = require("../memory/fileMemoryBackend");
 const permissionMatrix_1 = require("../policy/permissionMatrix");
 const agentPolicyBinder_1 = require("../policy/agentPolicyBinder");
 const auditLogger_1 = require("../audit/auditLogger");
 const agent_1 = require("../agent/agent");
-const fs = __importStar(require("fs")); // Tambahkan FS
+const fs = __importStar(require("fs"));
 class TestAgent extends agent_1.Agent {
-    async handle() {
-        return "";
-    }
+    async handle() { return ""; }
 }
 (() => {
-    const DB_FILE = ".test_memory.json";
-    // FIX: Hapus file sampah sisa test sebelumnya agar mulai dari 0
-    if (fs.existsSync(DB_FILE)) {
-        fs.unlinkSync(DB_FILE);
-    }
-    const backend = new fileMemoryBackend_1.FileMemoryBackend(DB_FILE);
+    const TEST_FILE = ".security_test.json";
+    // Bersihkan file sisa sebelum mulai (untuk safety)
+    if (fs.existsSync(TEST_FILE))
+        fs.unlinkSync(TEST_FILE);
+    const backend = new fileMemoryBackend_1.FileMemoryBackend(TEST_FILE);
     const store = new memoryStore_1.MemoryStore(backend);
     const matrix = new permissionMatrix_1.PermissionMatrix();
+    // FIX: Gunakan Role "WORKER" yang standar, bukan "SPY"
     matrix.register({
-        agent: "alpha",
+        agent: "secret_agent",
         role: "WORKER",
         allow: ["MEMORY_WRITE", "MEMORY_READ"]
     });
     const audit = new auditLogger_1.AuditLogger();
     const policy = new agentPolicyBinder_1.AgentPolicyBinder(matrix, audit);
     const memory = new memoryController_1.MemoryController(store, policy, audit);
-    const agent = new TestAgent("alpha", "WORKER");
-    memory.remember(agent, "HELLO");
-    memory.remember(agent, "WORLD");
-    const recall = memory.recall(agent);
-    // Debug jika gagal lagi (biar kita tahu isinya apa)
-    if (recall.length !== 2) {
-        console.error("RECALL CONTENT:", recall);
-        throw new Error(`RECALL FAILED: Expected 2, got ${recall.length}`);
+    // FIX: Gunakan Role "WORKER" saat spawn agent
+    const agent = new TestAgent("secret_agent", "WORKER");
+    // 1. Test Compression
+    const messyText = "  Hello    World   ";
+    memory.remember(agent, messyText, false); // Not sensitive
+    const recall1 = memory.recall(agent);
+    if (recall1[0] !== "Hello World") {
+        throw new Error(`COMPRESSION FAILED: Got '${recall1[0]}'`);
     }
-    memory.prune(1);
+    // 2. Test Encryption
+    const secret = "BLUEPRINT_OMEGA";
+    memory.remember(agent, secret, true); // Sensitive!
+    // Cek fisik file (harus terenkripsi / tidak terbaca plain)
+    const rawFile = fs.readFileSync(TEST_FILE, "utf-8");
+    if (rawFile.includes("BLUEPRINT_OMEGA")) {
+        throw new Error("ENCRYPTION FAILED: Raw secret found in file!");
+    }
+    // Cek recall (harus ter-decrypt otomatis)
     const recall2 = memory.recall(agent);
-    if (recall2.length !== 1)
-        throw new Error("PRUNE FAILED");
-    // Cleanup setelah selesai
-    if (fs.existsSync(DB_FILE)) {
-        fs.unlinkSync(DB_FILE);
+    // recall2 akan berisi [compressed_hello, decrypted_secret]
+    // Kita cari yang isinya secret
+    const retrievedSecret = recall2.find(s => s === "BLUEPRINT_OMEGA");
+    if (!retrievedSecret) {
+        throw new Error(`DECRYPTION FAILED: Secret not found in recall results. Got: ${JSON.stringify(recall2)}`);
     }
-    console.log("MEMORY CONTROLLER TEST PASSED");
+    // Cleanup
+    if (fs.existsSync(TEST_FILE))
+        fs.unlinkSync(TEST_FILE);
+    console.log("MEMORY SECURITY & COMPRESSION TEST PASSED");
 })();

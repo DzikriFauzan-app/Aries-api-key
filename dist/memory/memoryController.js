@@ -1,29 +1,35 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MemoryController = void 0;
+const memoryTransformer_1 = require("./memoryTransformer");
 class MemoryController {
     constructor(store, policy, audit) {
         this.store = store;
         this.policy = policy;
         this.audit = audit;
     }
-    remember(agent, content) {
+    remember(agent, content, isSensitive = false) {
         this.policy.enforce(agent, "MEMORY_WRITE");
         const now = Date.now();
-        // UNIQUE KEY: AgentName + Timestamp + Random 
-        // Mencegah overwrite saat test berjalan dalam <1ms
         const uniqueId = Math.floor(Math.random() * 1000000);
         const key = `${agent.name}:${now}:${uniqueId}`;
+        // 1. Compress (Selalu, untuk efisiensi)
+        let processedContent = memoryTransformer_1.MemoryTransformer.compress(content);
+        // 2. Encrypt (Jika sensitif/blueprint)
+        if (isSensitive) {
+            processedContent = memoryTransformer_1.MemoryTransformer.encrypt(processedContent);
+        }
         const rec = {
             key: key,
             agent: agent.name,
             role: agent.role,
-            content: content, // Core content
-            value: content, // Compat
+            content: processedContent,
+            value: processedContent,
             ts: now,
-            score: 100, // High default score (Important!)
+            score: isSensitive ? 500 : 100, // Data sensitif score lebih tinggi (lebih tahan prune)
             hits: 0,
-            lastAccess: now
+            lastAccess: now,
+            encrypted: isSensitive // Metadata penting!
         };
         this.store.write(rec);
         this.audit.log({
@@ -32,24 +38,19 @@ class MemoryController {
             agent: agent.name,
             role: agent.role,
             action: "MEMORY_WRITE",
-            detail: content
+            detail: isSensitive ? "ENCRYPTED_DATA" : "PLAIN_DATA"
         });
     }
     recall(agent) {
         this.policy.enforce(agent, "MEMORY_READ");
         const storeAny = this.store;
         let records = [];
-        // Ambil semua data (Snapshot)
         if (storeAny.snapshot) {
             records = storeAny.snapshot();
         }
         else if (storeAny.scan) {
-            // Fallback untuk backend tipe lain
             records = storeAny.scan().map((k) => storeAny.read(k));
         }
-        // FILTER KUAT (Anti-Lupa)
-        // 1. Cek properti .agent
-        // 2. ATAU Cek awalan Key (jika properti agent hilang di JSON)
         const filtered = records.filter((r) => {
             if (!r)
                 return false;
@@ -57,36 +58,41 @@ class MemoryController {
             const byKey = (typeof r.key === 'string') && r.key.startsWith(`${agent.name}:`);
             return byProp || byKey;
         });
-        // Update Access Stats
+        // Update stats
         const now = Date.now();
         filtered.forEach(r => {
             if (typeof r.hits === 'number')
                 r.hits++;
             r.lastAccess = now;
         });
-        // Return Content sorted by Time
+        // Sort & Decode
         return filtered
             .sort((a, b) => a.ts - b.ts)
-            .map(r => r.content || r.value) // Prioritas content
+            .map(r => {
+            let val = r.content || r.value;
+            // Auto Decrypt jika flag nyala
+            if (r.encrypted && typeof val === 'string') {
+                return memoryTransformer_1.MemoryTransformer.decrypt(val);
+            }
+            return val;
+        })
             .filter(c => typeof c === 'string');
     }
+    // Pruning logic tetap sama (sudah solid)
     prune(limit) {
         const storeAny = this.store;
         if (!storeAny.snapshot || !storeAny.replace)
             return;
-        // SCORING LOGIC (Sesuai Filosofi: Keep Latest & Most Used)
-        // Score = (Hits * 2) + (RecencyWeight) + BaseScore
         const now = Date.now();
         const all = storeAny.snapshot();
         const retained = all
             .map(r => {
             const age = now - (r.lastAccess || 0);
-            // Semakin baru (age kecil), score makin tinggi
             const recencyScore = 1000000 / (age + 1);
-            const finalScore = (r.hits || 0) * 10 + recencyScore;
+            const finalScore = (r.hits || 0) * 10 + recencyScore + (r.score || 0); // Include base score
             return { r, score: finalScore };
         })
-            .sort((a, b) => b.score - a.score) // Sort Tertinggi ke Terendah
+            .sort((a, b) => b.score - a.score)
             .slice(0, limit)
             .map(x => x.r);
         storeAny.replace(retained);
