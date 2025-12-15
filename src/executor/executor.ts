@@ -1,9 +1,9 @@
 import { EventBus } from "../events/eventBus";
 import { AriesEvent } from "../events/eventTypes";
 import { getFsTool } from "../tools/fs/fsRegistry";
+import { Sandbox } from "../sandbox/sandbox"; // Import Sandbox
+import { SandboxError } from "../sandbox/sandboxError"; // Import Error Type
 import { randomUUID } from "crypto";
-import * as fs from "fs/promises";
-import * as path from "path";
 
 type ExecutionPayload = {
   type: string;
@@ -11,14 +11,14 @@ type ExecutionPayload = {
 };
 
 export class Executor {
-  private workspaceRoot: string;
+  private sandbox: Sandbox; // Pakai Sandbox, bukan path string
 
   constructor(private bus: EventBus, rootPath: string = "workspace") {
-    this.workspaceRoot = path.resolve(process.cwd(), rootPath);
+    // Inisialisasi Sandbox di sini
+    this.sandbox = new Sandbox(rootPath);
   }
 
   start() {
-    // FIX: Tambahkan type annotation (evt: AriesEvent)
     this.bus.subscribe("TASK_APPROVED", async (evt: AriesEvent) => {
       await this.executeTask(evt);
     });
@@ -26,31 +26,24 @@ export class Executor {
 
   private async executeTask(evt: AriesEvent) {
     const payload = evt.payload as ExecutionPayload;
-    // Type casting ke string agar aman dipakai sebagai key
-    const toolName = payload.type as any; 
+    const toolName = payload.type as any;
 
     try {
       const toolDef = getFsTool(toolName);
-      
-      // Validasi params ada di dalam payload
       const params = payload.params || {};
 
-      const targetPath = path.resolve(this.workspaceRoot, params.path);
-      if (!targetPath.startsWith(this.workspaceRoot)) {
-        throw new Error("Security Violation: Path traversal detected");
-      }
-
+      // EXECUTOR TIDAK LAGI URUS PATH RESOLUTION ATAU FS NATIVE
+      // SEMUA DISERAHKAN KE SANDBOX
+      
       let result: any;
       if (toolName === "fs.read") {
-        result = await fs.readFile(targetPath, "utf-8");
+        result = await this.sandbox.readFile(params.path);
       } else if (toolName === "fs.write") {
         if (toolDef.readOnly) throw new Error("Violation: Write on ReadOnly tool");
-        // Ensure directory exists
-        await fs.mkdir(path.dirname(targetPath), { recursive: true });
-        await fs.writeFile(targetPath, params.content || "", "utf-8");
+        await this.sandbox.writeFile(params.path, params.content || "");
         result = "File Written";
       } else if (toolName === "fs.list") {
-        result = await fs.readdir(targetPath);
+        result = await this.sandbox.listDir(params.path);
       } else {
         throw new Error("Not implemented tool logic");
       }
@@ -67,13 +60,19 @@ export class Executor {
     } catch (error: any) {
       console.error("[Executor] Error:", error.message);
       
+      // Bedakan error sandbox vs error lain jika perlu
+      const isSecurity = error instanceof SandboxError;
+      
       await this.bus.publish({
         id: randomUUID(),
         type: "TASK_FAILED",
         source: "EXECUTOR",
         timestamp: Date.now(),
         correlationId: evt.correlationId,
-        payload: { error: error.message }
+        payload: { 
+          error: error.message,
+          isSecurityViolation: isSecurity 
+        }
       });
     }
   }

@@ -6,11 +6,13 @@ import * as path from "path";
 import { AriesEvent } from "../events/eventTypes";
 
 (async () => {
-  console.log("[TEST] EXECUTOR CORE (Step 17)");
+  console.log("[TEST] EXECUTOR CORE (Step 17 - Sandbox Integrated)");
   
   const TEST_ROOT = path.resolve(process.cwd(), "test_workspace");
   if (fs.existsSync(TEST_ROOT)) fs.rmSync(TEST_ROOT, { recursive: true, force: true });
-  fs.mkdirSync(TEST_ROOT);
+  
+  // Tidak perlu mkdir manual, Sandbox akan handle
+  // fs.mkdirSync(TEST_ROOT); 
 
   const bus = new EventBus();
   const executor = new Executor(bus, "test_workspace");
@@ -19,7 +21,6 @@ import { AriesEvent } from "../events/eventTypes";
   let completed: AriesEvent | null = null;
   let failed: AriesEvent | null = null;
 
-  // FIX: Type annotation
   bus.subscribe("TASK_COMPLETED", async (evt: AriesEvent) => { completed = evt; });
   bus.subscribe("TASK_FAILED", async (evt: AriesEvent) => { failed = evt; });
 
@@ -83,10 +84,13 @@ import { AriesEvent } from "../events/eventTypes";
   if (!failed) throw new Error("Executor allowed path traversal!");
   
   const failPayload = (failed as AriesEvent).payload;
-  if (!failPayload.error.includes("Security Violation")) {
-    throw new Error("Wrong error message for security breach");
+  
+  // FIX: Update ekspektasi pesan error sesuai Sandbox
+  if (!failPayload.error.includes("Path traversal blocked")) {
+    throw new Error(`Wrong error message: ${failPayload.error}`);
   }
 
+  // Cleanup
   fs.rmSync(TEST_ROOT, { recursive: true, force: true });
   console.log("EXECUTOR TEST PASSED");
 })();

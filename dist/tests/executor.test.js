@@ -39,17 +39,17 @@ require("../tools/fs");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 (async () => {
-    console.log("[TEST] EXECUTOR CORE (Step 17)");
+    console.log("[TEST] EXECUTOR CORE (Step 17 - Sandbox Integrated)");
     const TEST_ROOT = path.resolve(process.cwd(), "test_workspace");
     if (fs.existsSync(TEST_ROOT))
         fs.rmSync(TEST_ROOT, { recursive: true, force: true });
-    fs.mkdirSync(TEST_ROOT);
+    // Tidak perlu mkdir manual, Sandbox akan handle
+    // fs.mkdirSync(TEST_ROOT); 
     const bus = new eventBus_1.EventBus();
     const executor = new executor_1.Executor(bus, "test_workspace");
     executor.start();
     let completed = null;
     let failed = null;
-    // FIX: Type annotation
     bus.subscribe("TASK_COMPLETED", async (evt) => { completed = evt; });
     bus.subscribe("TASK_FAILED", async (evt) => { failed = evt; });
     // CASE 1: WRITE FILE
@@ -107,9 +107,11 @@ const path = __importStar(require("path"));
     if (!failed)
         throw new Error("Executor allowed path traversal!");
     const failPayload = failed.payload;
-    if (!failPayload.error.includes("Security Violation")) {
-        throw new Error("Wrong error message for security breach");
+    // FIX: Update ekspektasi pesan error sesuai Sandbox
+    if (!failPayload.error.includes("Path traversal blocked")) {
+        throw new Error(`Wrong error message: ${failPayload.error}`);
     }
+    // Cleanup
     fs.rmSync(TEST_ROOT, { recursive: true, force: true });
     console.log("EXECUTOR TEST PASSED");
 })();
