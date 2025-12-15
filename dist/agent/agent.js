@@ -1,33 +1,43 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Agent = void 0;
-const agentTypes_1 = require("./agentTypes");
 class Agent {
-    constructor(name, role, parent) {
+    constructor(name, role) {
+        this.approvedCommands = new Set();
         this.name = name;
         this.role = role;
+    }
+    setParent(parent) {
         this.parent = parent;
     }
-    canApprove() {
-        return agentTypes_1.ROLE_PERMISSIONS[this.role].canApprove;
-    }
-    canExecute() {
-        return agentTypes_1.ROLE_PERMISSIONS[this.role].canExecute;
-    }
-    approve() {
-        if (this.canApprove())
+    approve(command) {
+        if (!command) {
+            this.approvedCommands.add("*");
             return true;
-        if (!this.parent)
-            return false;
-        return this.parent.approve();
-    }
-    async handle(command) {
-        if (!this.canExecute()) {
-            return { status: "DENIED", agent: this.name };
         }
-        if (command.toLowerCase() === "ping")
+        this.approvedCommands.add(command);
+        return true;
+    }
+    isApproved(command) {
+        if (this.approvedCommands.has("*"))
+            return true;
+        if (this.approvedCommands.has(command))
+            return true;
+        if (this.parent)
+            return this.parent.isApproved(command);
+        return false;
+    }
+    async handle(command, trusted = false) {
+        if (this.role === "WORKER" && !trusted && !this.isApproved(command)) {
+            throw new Error("Worker approval failed");
+        }
+        if (command === "ping")
             return "PONG";
-        return { status: "UNKNOWN", command };
+        return `OK:${command}`;
+    }
+    // ✅ INTERNAL USE ONLY (DSL / REGISTRY)
+    async handleDelegated(command) {
+        return this.handle(command, true);
     }
 }
 exports.Agent = Agent;

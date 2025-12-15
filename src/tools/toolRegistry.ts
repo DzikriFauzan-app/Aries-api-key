@@ -1,10 +1,11 @@
-import { Tool } from "./toolTypes";
+import { Tool, ToolConstructor } from "./toolTypes";
 
 export class ToolRegistry {
   private tools = new Map<string, Tool>();
 
-  register(tool: Tool): void {
-    this.tools.set(tool.name, tool);
+  register(ToolClass: ToolConstructor): void {
+    const tool = new ToolClass();
+    this.tools.set(tool.toolName, tool);
   }
 
   get(name: string): Tool | undefined {

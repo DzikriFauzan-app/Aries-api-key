@@ -1,8 +1,9 @@
-import { Tool } from "./toolTypes";
+import { Tool, ToolContext } from "./toolTypes";
 
-export const EchoTool: Tool = {
-  name: "ECHO",
-  async execute(input: string): Promise<string> {
+export class EchoTool implements Tool {
+  readonly toolName = "ECHO";
+
+  async execute(input: string, _ctx: ToolContext): Promise<string> {
     return input;
   }
-};
+}

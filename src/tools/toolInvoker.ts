@@ -1,11 +1,13 @@
 import { ToolRegistry } from "./toolRegistry";
 import { AgentPolicyBinder } from "../policy/agentPolicyBinder";
 import { Agent } from "../agent/agent";
+import { AuditLogger } from "../audit/auditLogger";
 
 export class ToolInvoker {
   constructor(
     private registry: ToolRegistry,
-    private policy: AgentPolicyBinder
+    private policy: AgentPolicyBinder,
+    private audit: AuditLogger
   ) {}
 
   async invoke(
@@ -14,7 +16,6 @@ export class ToolInvoker {
     input: string
   ): Promise<string> {
 
-    // POLICY CHECK (REAL)
     this.policy.enforce(agent, toolName);
 
     const tool = this.registry.get(toolName);
@@ -22,9 +23,20 @@ export class ToolInvoker {
       throw new Error(`TOOL NOT FOUND: ${toolName}`);
     }
 
-    return tool.execute(input, {
+    const result = await tool.execute(input, {
       agent: agent.name,
       role: agent.role
     });
+
+    this.audit.log({
+      ts: Date.now(),
+      type: "TOOL_INVOKE",
+      agent: agent.name,
+      role: agent.role,
+      action: toolName,
+      detail: input
+    });
+
+    return result;
   }
 }

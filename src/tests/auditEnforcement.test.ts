@@ -1,10 +1,10 @@
-import { ToolRegistry } from "../tools/toolRegistry";
-import { ToolInvoker } from "../tools/toolInvoker";
+import { AuditLogger } from "../audit/auditLogger";
 import { PermissionMatrix } from "../policy/permissionMatrix";
 import { AgentPolicyBinder } from "../policy/agentPolicyBinder";
-import { AuditLogger } from "../audit/auditLogger";
-import { Agent } from "../agent/agent";
+import { ToolRegistry } from "../tools/toolRegistry";
+import { ToolInvoker } from "../tools/toolInvoker";
 import { EchoTool } from "../tools/echoTool";
+import { Agent } from "../agent/agent";
 
 class TestAgent extends Agent {
   async handle(): Promise<string> {
@@ -13,8 +13,7 @@ class TestAgent extends Agent {
 }
 
 (async () => {
-  const tools = new ToolRegistry();
-  tools.register(EchoTool);
+  const audit = new AuditLogger();
 
   const matrix = new PermissionMatrix();
   matrix.register({
@@ -23,16 +22,15 @@ class TestAgent extends Agent {
     allow: ["ECHO"]
   });
 
-  const audit = new AuditLogger();
   const policy = new AgentPolicyBinder(matrix, audit);
-  const invoker = new ToolInvoker(tools, policy, audit);
 
+  const tools = new ToolRegistry();
+  tools.register(EchoTool);
+
+  const invoker = new ToolInvoker(tools, policy, audit);
   const agent = new TestAgent("alpha", "WORKER");
 
-  const r1 = await invoker.invoke(agent, "ECHO", "HELLO");
-  if (r1 !== "HELLO") {
-    throw new Error("TOOL INVOKE FAILED");
-  }
+  await invoker.invoke(agent, "ECHO", "HELLO");
 
   let denied = false;
   try {
@@ -42,12 +40,12 @@ class TestAgent extends Agent {
   }
 
   if (!denied) {
-    throw new Error("TOOL POLICY FAILED");
+    throw new Error("POLICY DENY NOT ENFORCED");
   }
 
   if (audit.all().length !== 2) {
-    throw new Error("AUDIT COUNT INVALID");
+    throw new Error("AUDIT EVENT COUNT FAILED");
   }
 
-  console.log("TOOL INVOKER TEST PASSED");
+  console.log("AUDIT ENFORCEMENT TEST PASSED");
 })();

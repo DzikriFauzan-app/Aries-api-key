@@ -1,35 +1,51 @@
-import { AgentRole, ROLE_PERMISSIONS } from "./agentTypes";
+import { AgentRole } from "./agentTypes";
 
 export class Agent {
-  readonly name: string;
-  readonly role: AgentRole;
-  readonly parent?: Agent;
+  public readonly name: string;
+  public readonly role: AgentRole;
 
-  constructor(name: string, role: AgentRole, parent?: Agent) {
+  private approvedCommands: Set<string> = new Set();
+  private parent?: Agent;
+
+  constructor(name: string, role: AgentRole) {
     this.name = name;
     this.role = role;
+  }
+
+  setParent(parent: Agent): void {
     this.parent = parent;
   }
 
-  canApprove(): boolean {
-    return ROLE_PERMISSIONS[this.role].canApprove;
-  }
-
-  canExecute(): boolean {
-    return ROLE_PERMISSIONS[this.role].canExecute;
-  }
-
-  approve(): boolean {
-    if (this.canApprove()) return true;
-    if (!this.parent) return false;
-    return this.parent.approve();
-  }
-
-  async handle(command: string): Promise<any> {
-    if (!this.canExecute()) {
-      return { status: "DENIED", agent: this.name };
+  // BACKWARD COMPATIBLE
+  approve(): boolean;
+  approve(command: string): boolean;
+  approve(command?: string): boolean {
+    if (!command) {
+      this.approvedCommands.add("*");
+      return true;
     }
-    if (command.toLowerCase() === "ping") return "PONG";
-    return { status: "UNKNOWN", command };
+    this.approvedCommands.add(command);
+    return true;
+  }
+
+  private isApproved(command: string): boolean {
+    if (this.approvedCommands.has("*")) return true;
+    if (this.approvedCommands.has(command)) return true;
+    if (this.parent) return this.parent.isApproved(command);
+    return false;
+  }
+
+  async handle(command: string, trusted = false): Promise<string> {
+    if (this.role === "WORKER" && !trusted && !this.isApproved(command)) {
+      throw new Error("Worker approval failed");
+    }
+
+    if (command === "ping") return "PONG";
+    return `OK:${command}`;
+  }
+
+  // ✅ INTERNAL USE ONLY (DSL / REGISTRY)
+  async handleDelegated(command: string): Promise<string> {
+    return this.handle(command, true);
   }
 }
