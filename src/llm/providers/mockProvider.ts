@@ -2,24 +2,19 @@ import { LLMProvider, LLMRequest, LLMResponse } from "../types";
 
 export class MockProvider implements LLMProvider {
   readonly name = "mock-v1";
-  private responseQueue: string[] = [];
+  private queue: string[] = [];
 
-  // Fitur Test: Kita bisa menyuntikkan jawaban palsu antrian
   queueResponse(text: string) {
-    this.responseQueue.push(text);
+    this.queue.push(text);
   }
 
-  async generate(request: LLMRequest): Promise<LLMResponse> {
-    // Simulasi latency jaringan (biar real)
-    await new Promise(resolve => setTimeout(resolve, 10));
-
-    const reply = this.responseQueue.shift() || `MOCK_ECHO: ${request.prompt}`;
-
+  async generate(_: LLMRequest): Promise<LLMResponse> {
+    const text = this.queue.shift() || "{}";
     return {
-      text: reply,
+      text,
       usage: {
-        prompt_tokens: request.prompt.length,
-        completion_tokens: reply.length
+        prompt_tokens: 1,
+        completion_tokens: 1
       }
     };
   }
