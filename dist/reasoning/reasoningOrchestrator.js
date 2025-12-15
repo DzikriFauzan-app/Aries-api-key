@@ -13,6 +13,7 @@ class ReasoningOrchestrator {
         });
     }
     async handle(evt) {
+        const payload = evt.payload;
         const prompt = `
 You are Aries Reasoning Core.
 Output MUST be valid JSON ONLY.
@@ -26,25 +27,16 @@ Schema:
 }
 
 User Input:
-${evt.payload.input}
+${payload.input}
 `;
         const res = await this.llm.generate({
             prompt,
             temperature: 0
         });
-        let parsed;
-        try {
-            parsed = JSON.parse(res.text);
-        }
-        catch {
-            throw new Error("LLM returned invalid JSON");
-        }
-        const eventType = parsed.action === "RESPOND"
-            ? "AGENT_RESPONSE"
-            : "TASK_ASSIGNED";
+        const parsed = JSON.parse(res.text);
         await this.bus.publish({
             id: (0, crypto_1.randomUUID)(),
-            type: eventType,
+            type: "AGENT_RESPONSE",
             source: "REASONING",
             timestamp: Date.now(),
             correlationId: evt.correlationId,

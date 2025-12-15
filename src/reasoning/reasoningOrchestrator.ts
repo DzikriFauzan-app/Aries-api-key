@@ -3,6 +3,10 @@ import { AriesEvent } from "../events/eventTypes";
 import { LLMProvider } from "../llm/types";
 import { randomUUID } from "crypto";
 
+type InputPayload = {
+  input: string;
+};
+
 type ReasoningResult = {
   intent: string;
   action: "RESPOND" | "ASSIGN";
@@ -17,12 +21,14 @@ export class ReasoningOrchestrator {
   ) {}
 
   start() {
-    this.bus.subscribe("AGENT_COMMAND", async (evt: AriesEvent) => {
+    this.bus.subscribe("AGENT_COMMAND", async (evt) => {
       await this.handle(evt);
     });
   }
 
   private async handle(evt: AriesEvent) {
+    const payload = evt.payload as InputPayload;
+
     const prompt = `
 You are Aries Reasoning Core.
 Output MUST be valid JSON ONLY.
@@ -36,7 +42,7 @@ Schema:
 }
 
 User Input:
-${evt.payload.input}
+${payload.input}
 `;
 
     const res = await this.llm.generate({
@@ -44,21 +50,11 @@ ${evt.payload.input}
       temperature: 0
     });
 
-    let parsed: ReasoningResult;
-    try {
-      parsed = JSON.parse(res.text);
-    } catch {
-      throw new Error("LLM returned invalid JSON");
-    }
-
-    const eventType =
-      parsed.action === "RESPOND"
-        ? "AGENT_RESPONSE"
-        : "TASK_ASSIGNED";
+    const parsed = JSON.parse(res.text) as ReasoningResult;
 
     await this.bus.publish({
       id: randomUUID(),
-      type: eventType,
+      type: "AGENT_RESPONSE",
       source: "REASONING",
       timestamp: Date.now(),
       correlationId: evt.correlationId,

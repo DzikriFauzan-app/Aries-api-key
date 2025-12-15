@@ -1,27 +1,25 @@
-/**
- * Daftar Event Resmi Aries System.
- * Penambahan event baru harus lewat sini agar Type Safe.
- */
-export type EventType = 
-  | "SYSTEM_START"       // Saat kernel boot
-  | "SYSTEM_SHUTDOWN"    // Saat kernel mati
-  | "AGENT_COMMAND"      // Perintah masuk dari Gateway -> Agent
-  | "AGENT_RESPONSE"     // Jawaban dari Agent -> Gateway
-  | "TASK_ASSIGNED"      // Orchestrator menunjuk Worker
-  | "TASK_COMPLETED"     // Worker selesai
-  | "TASK_FAILED"        // Worker gagal (dengan error trace)
-  | "MEMORY_UPDATED"     // MemoryController menulis sesuatu
-  | "MEMORY_PRUNED"      // MemoryController membuang sampah
-  | "AUDIT_LOG"          // Log sistem (untuk debug/forensik)
-  | "*";                 // Wildcard (untuk Global Listener)
+export type CoreEventType =
+  | "SYSTEM_START"
+  | "SYSTEM_SHUTDOWN"
+  | "AGENT_COMMAND"
+  | "AGENT_RESPONSE"
+  | "TASK_ASSIGNED"
+  | "TASK_APPROVED"
+  | "TASK_REJECTED";
 
-export interface AriesEvent {
-  id: string;            // UUID v4
+export type SystemEventType =
+  | "AUDIT_LOG"
+  | "*";
+
+export type EventType = CoreEventType | SystemEventType;
+
+export type AriesEvent = {
+  id: string;
   type: EventType;
-  payload: any;          // Data flexible namun terstruktur di runtime
-  source: string;        // Nama Agent / Komponen pengirim
-  timestamp: number;     // Unix Epoch ms
-  correlationId?: string;// ID untuk melacak rantai request-response
-}
+  source: string;
+  timestamp: number;
+  correlationId?: string;
+  payload: unknown;
+};
 
 export type EventHandler = (event: AriesEvent) => Promise<void>;

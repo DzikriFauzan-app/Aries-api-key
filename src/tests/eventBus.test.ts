@@ -3,37 +3,31 @@ import { AriesEvent } from "../events/eventTypes";
 
 (async () => {
   const bus = new EventBus();
+
   let specificCount = 0;
   let wildcardCount = 0;
-  let errorHandled = true; // Asumsi positif
 
   console.log("[TEST] Setup Listeners...");
 
-  // 1. Specific Listener
-  bus.subscribe("AGENT_RESPONSE", async (evt) => {
+  bus.subscribe("AGENT_RESPONSE", async (evt: AriesEvent) => {
     specificCount++;
-    if (evt.payload.data !== "SECRET_DATA") {
+
+    const payload = evt.payload as any;
+    if (payload.data !== "SECRET_DATA") {
       throw new Error("Payload corruption detected!");
     }
   });
 
-  // 2. Wildcard Listener (Spy)
-  bus.subscribe("*", async (evt) => {
+  bus.subscribe("*", async () => {
     wildcardCount++;
-    // Wildcard harus menerima event apa saja
-    if (evt.type !== "AGENT_RESPONSE" && evt.type !== "SYSTEM_START") {
-      // throw new Error("Unexpected event type in wildcard"); // Optional check
-    }
   });
 
-  // 3. Bad Listener (Simulasi Error)
   bus.subscribe("AGENT_RESPONSE", async () => {
     throw new Error("I AM A BUGGY PLUGIN");
   });
 
   console.log("[TEST] Dispatching Events...");
 
-  // Event 1: Normal
   await bus.publish({
     id: "evt-1",
     type: "AGENT_RESPONSE",
@@ -42,7 +36,6 @@ import { AriesEvent } from "../events/eventTypes";
     payload: { data: "SECRET_DATA" }
   });
 
-  // Event 2: Tipe Lain (Hanya Wildcard yang dengar)
   await bus.publish({
     id: "evt-2",
     type: "SYSTEM_START",
@@ -53,29 +46,24 @@ import { AriesEvent } from "../events/eventTypes";
 
   console.log("[TEST] Verifying Logic...");
 
-  // Verifikasi Specific
-  // Harus 1 (karena Event 2 beda tipe)
   if (specificCount !== 1) {
-    throw new Error(`SPECIFIC LISTENER FAILED: Expected 1, got ${specificCount}`);
+    throw new Error(`SPECIFIC LISTENER FAILED: ${specificCount}`);
   }
 
-  // Verifikasi Wildcard
-  // Harus 2 (karena dengar semua)
   if (wildcardCount !== 2) {
-    throw new Error(`WILDCARD LISTENER FAILED: Expected 2, got ${wildcardCount}`);
+    throw new Error(`WILDCARD LISTENER FAILED: ${wildcardCount}`);
   }
 
-  // Verifikasi Robustness
-  // Code di atas tidak crash meski ada 'Bad Listener'.
-  // Jika script ini sampai baris ini, berarti Fault Tolerance bekerja.
-  
-  // Test Unsubscribe
-  const tempHandler = async () => { console.log("Should not run"); };
+  const tempHandler = async () => {};
   bus.subscribe("AUDIT_LOG", tempHandler);
-  if (bus.listenerCount("AUDIT_LOG") !== 1) throw new Error("Subscribe failed");
-  
-  bus.unsubscribe("AUDIT_LOG", tempHandler);
-  if (bus.listenerCount("AUDIT_LOG") !== 0) throw new Error("Unsubscribe failed");
+  if (bus.listenerCount("AUDIT_LOG") !== 1) {
+    throw new Error("Subscribe failed");
+  }
 
-  console.log("EVENT BUS TEST PASSED (All Checks: Specific, Wildcard, Robustness, Unsubscribe)");
+  bus.unsubscribe("AUDIT_LOG", tempHandler);
+  if (bus.listenerCount("AUDIT_LOG") !== 0) {
+    throw new Error("Unsubscribe failed");
+  }
+
+  console.log("EVENT BUS TEST PASSED");
 })();
