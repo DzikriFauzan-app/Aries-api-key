@@ -1,11 +1,12 @@
 export interface MemoryRecord {
-  key: string;
-  value: string;
-  ts: number; // Timestamp
-}
+  readonly ts: number;
 
-export interface MemoryStore {
-  write(key: string, value: string): void;
-  read(key: string): MemoryRecord | null;
-  dump(): MemoryRecord[];
+  // KV MEMORY (LEGACY / BACKEND)
+  readonly key?: string;
+  readonly value?: string;
+
+  // AGENT MEMORY (COGNITIVE)
+  readonly agent?: string;
+  readonly role?: string;
+  readonly content?: string;
 }

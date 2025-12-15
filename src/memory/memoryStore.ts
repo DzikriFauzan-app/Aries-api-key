@@ -1,27 +1,25 @@
-import { MemoryBackend } from "./memoryBackend";
 import { MemoryRecord } from "./memoryTypes";
+import { MemoryBackend } from "./memoryBackend";
 
 export class MemoryStore {
-  private backend: MemoryBackend;
+  private records: MemoryRecord[] = [];
 
-  constructor(backend: MemoryBackend) {
-    this.backend = backend;
-  }
+  constructor(private backend?: MemoryBackend) {}
 
-  write(key: string, value: string): void {
-    const rec: MemoryRecord = {
-      key,
-      value,
-      ts: Date.now()
-    };
-    this.backend.write(rec);
+  write(record: MemoryRecord): void {
+    this.records.push(Object.freeze(record));
+    this.backend?.write(record);
   }
 
   read(key: string): MemoryRecord | undefined {
-    return this.backend.read(key);
+    return this.backend?.read(key);
   }
 
-  snapshot(): MemoryRecord[] {
-    return this.backend.snapshot();
+  readByAgent(agent: string): readonly MemoryRecord[] {
+    return this.records.filter(r => r.agent === agent);
+  }
+
+  all(): readonly MemoryRecord[] {
+    return this.records;
   }
 }

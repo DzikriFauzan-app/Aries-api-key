@@ -4,20 +4,20 @@ exports.MemoryStore = void 0;
 class MemoryStore {
     constructor(backend) {
         this.backend = backend;
+        this.records = [];
     }
-    write(key, value) {
-        const rec = {
-            key,
-            value,
-            ts: Date.now()
-        };
-        this.backend.write(rec);
+    write(record) {
+        this.records.push(Object.freeze(record));
+        this.backend?.write(record);
     }
     read(key) {
-        return this.backend.read(key);
+        return this.backend?.read(key);
     }
-    snapshot() {
-        return this.backend.snapshot();
+    readByAgent(agent) {
+        return this.records.filter(r => r.agent === agent);
+    }
+    all() {
+        return this.records;
     }
 }
 exports.MemoryStore = MemoryStore;

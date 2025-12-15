@@ -1,25 +1,27 @@
-import fs from "fs";
 import { MemoryBackend } from "./memoryBackend";
 import { MemoryRecord } from "./memoryTypes";
+import * as fs from "fs";
 
 export class FileMemoryBackend implements MemoryBackend {
-  private file: string;
   private map = new Map<string, MemoryRecord>();
 
-  constructor(file = "aries.memory.json") {
-    this.file = file;
+  constructor(private file: string) {
     if (fs.existsSync(file)) {
-      const raw = JSON.parse(fs.readFileSync(file, "utf-8"));
-      raw.forEach((r: MemoryRecord) => this.map.set(r.key, r));
+      const raw: MemoryRecord[] = JSON.parse(
+        fs.readFileSync(file, "utf-8")
+      );
+      raw.forEach(r => {
+        if (r.key) {
+          this.map.set(r.key, r);
+        }
+      });
     }
   }
 
   write(rec: MemoryRecord): void {
+    if (!rec.key) return;
     this.map.set(rec.key, rec);
-    fs.writeFileSync(
-      this.file,
-      JSON.stringify(this.snapshot(), null, 2)
-    );
+    this.flush();
   }
 
   read(key: string): MemoryRecord | undefined {
@@ -27,6 +29,13 @@ export class FileMemoryBackend implements MemoryBackend {
   }
 
   snapshot(): MemoryRecord[] {
-    return Array.from(this.map.values());
+    return [...this.map.values()];
+  }
+
+  private flush(): void {
+    fs.writeFileSync(
+      this.file,
+      JSON.stringify(this.snapshot(), null, 2)
+    );
   }
 }
