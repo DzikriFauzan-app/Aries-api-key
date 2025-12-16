@@ -1,40 +1,49 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EventBus = void 0;
+const forensicLogger_1 = require("../forensics/forensicLogger");
 class EventBus {
-    constructor() {
-        this.subscribers = new Map();
-    }
-    subscribe(type, handler) {
-        const handlers = this.subscribers.get(type) || [];
-        if (!handlers.includes(handler)) {
-            handlers.push(handler);
-            this.subscribers.set(type, handlers);
+    constructor(enableForensics = true) {
+        this.handlers = new Map();
+        this.forensic = null;
+        if (enableForensics) {
+            this.forensic = new forensicLogger_1.ForensicLogger();
         }
     }
-    unsubscribe(type, handler) {
-        const handlers = this.subscribers.get(type);
-        if (!handlers)
-            return;
-        const idx = handlers.indexOf(handler);
-        if (idx >= 0)
-            handlers.splice(idx, 1);
-        if (handlers.length === 0)
-            this.subscribers.delete(type);
+    subscribe(eventType, handler) {
+        if (!this.handlers.has(eventType)) {
+            this.handlers.set(eventType, []);
+        }
+        this.handlers.get(eventType).push(handler);
     }
-    listenerCount(type) {
-        return this.subscribers.get(type)?.length || 0;
+    unsubscribe(eventType, handler) {
+        if (!this.handlers.has(eventType))
+            return;
+        const handlers = this.handlers.get(eventType);
+        const index = handlers.indexOf(handler);
+        if (index !== -1) {
+            handlers.splice(index, 1);
+        }
+    }
+    listenerCount(eventType) {
+        return this.handlers.get(eventType)?.length || 0;
     }
     async publish(event) {
-        const specific = this.subscribers.get(event.type) || [];
-        const wildcard = this.subscribers.get("*") || [];
-        const all = [...specific, ...wildcard];
-        await Promise.allSettled(all.map(async (h) => {
+        // 1. REKAM FORENSIK (Jika aktif)
+        if (this.forensic) {
+            this.forensic.record(event);
+        }
+        // 2. GABUNGKAN HANDLER SPESIFIK DAN WILDCARD (*)
+        const specificHandlers = this.handlers.get(event.type) || [];
+        const wildcardHandlers = this.handlers.get("*") || [];
+        const allHandlers = [...specificHandlers, ...wildcardHandlers];
+        // 3. EKSEKUSI HANDLER
+        await Promise.all(allHandlers.map(async (handler) => {
             try {
-                await h(event);
+                await handler(event);
             }
-            catch (err) {
-                console.error(`[EventBus] CRITICAL ERROR on handler for ${event.type}:`, err);
+            catch (error) {
+                console.error("[EventBus] CRITICAL ERROR on handler for " + event.type + ":", error);
             }
         }));
     }

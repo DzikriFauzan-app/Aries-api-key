@@ -1,41 +1,58 @@
-import { AriesEvent, EventHandler, EventType } from "./eventTypes";
+import { AriesEvent, EventHandler } from "./eventTypes";
+import { ForensicLogger } from "../forensics/forensicLogger";
 
 export class EventBus {
-  private subscribers = new Map<EventType, EventHandler[]>();
+  private handlers = new Map<string, EventHandler[]>();
+  private forensic: ForensicLogger | null = null;
 
-  subscribe(type: EventType, handler: EventHandler): void {
-    const handlers = this.subscribers.get(type) || [];
-    if (!handlers.includes(handler)) {
-      handlers.push(handler);
-      this.subscribers.set(type, handlers);
+  constructor(enableForensics = true) {
+    if (enableForensics) {
+      this.forensic = new ForensicLogger();
     }
   }
 
-  unsubscribe(type: EventType, handler: EventHandler): void {
-    const handlers = this.subscribers.get(type);
-    if (!handlers) return;
-    const idx = handlers.indexOf(handler);
-    if (idx >= 0) handlers.splice(idx, 1);
-    if (handlers.length === 0) this.subscribers.delete(type);
+  subscribe(eventType: string, handler: EventHandler) {
+    if (!this.handlers.has(eventType)) {
+      this.handlers.set(eventType, []);
+    }
+    this.handlers.get(eventType)!.push(handler);
   }
 
-  listenerCount(type: EventType): number {
-    return this.subscribers.get(type)?.length || 0;
+  unsubscribe(eventType: string, handler: EventHandler) {
+    if (!this.handlers.has(eventType)) return;
+    
+    const handlers = this.handlers.get(eventType)!;
+    const index = handlers.indexOf(handler);
+    
+    if (index !== -1) {
+      handlers.splice(index, 1);
+    }
   }
 
-  async publish(event: AriesEvent): Promise<void> {
-    const specific = this.subscribers.get(event.type) || [];
-    const wildcard = this.subscribers.get("*") || [];
-    const all = [...specific, ...wildcard];
+  listenerCount(eventType: string): number {
+    return this.handlers.get(eventType)?.length || 0;
+  }
 
-    await Promise.allSettled(
-      all.map(async (h) => {
+  async publish(event: AriesEvent) {
+    // 1. REKAM FORENSIK (Jika aktif)
+    if (this.forensic) {
+      this.forensic.record(event);
+    }
+
+    // 2. GABUNGKAN HANDLER SPESIFIK DAN WILDCARD (*)
+    const specificHandlers = this.handlers.get(event.type) || [];
+    const wildcardHandlers = this.handlers.get("*") || [];
+    const allHandlers = [...specificHandlers, ...wildcardHandlers];
+
+    // 3. EKSEKUSI HANDLER
+    await Promise.all(
+      allHandlers.map(async (handler) => {
         try {
-          await h(event);
-        } catch (err) {
+          await handler(event);
+        } catch (error) {
           console.error(
-            `[EventBus] CRITICAL ERROR on handler for ${event.type}:`,
-            err
+            "[EventBus] CRITICAL ERROR on handler for " + event.type + ":",
+            error
           );
         }
       })
