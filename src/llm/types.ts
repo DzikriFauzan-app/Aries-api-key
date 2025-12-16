@@ -1,19 +1,21 @@
-export interface LLMRequest {
-  system?: string;     // Instruksi dasar ("Kamu adalah Aries...")
-  prompt: string;      // Pertanyaan user / System prompt dinamis
-  temperature?: number; // Kreativitas (0 = Robot, 1 = Seniman)
+export interface GenerateParams {
+  prompt: string;
+  temperature?: number;
 }
 
-export interface LLMResponse {
+export interface GenerateResult {
   text: string;
   usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
+    promptTokens: number;
+    completionTokens: number;
   };
 }
 
-// Interface Utama: Semua otak harus patuh pada kontrak ini
 export interface LLMProvider {
   name: string;
-  generate(request: LLMRequest): Promise<LLMResponse>;
+  generate(params: GenerateParams): Promise<GenerateResult>;
 }
+
+// Alias untuk Backward Compatibility (agar Ollama tidak error)
+export type LLMRequest = GenerateParams;
+export type LLMResponse = GenerateResult;

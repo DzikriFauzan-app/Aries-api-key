@@ -2,20 +2,29 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MockProvider = void 0;
 class MockProvider {
-    constructor() {
-        this.name = "mock-v1";
-        this.queue = [];
+    constructor(name = "mock") {
+        this.responseQueue = [];
+        this.name = name;
     }
-    queueResponse(text) {
-        this.queue.push(text);
+    // Fitur penting untuk Test Injection
+    queueResponse(response) {
+        this.responseQueue.push(response);
     }
-    async generate(_) {
-        const text = this.queue.shift() || "{}";
+    async generate(params) {
+        // Jika ada antrian respon, pakai itu
+        if (this.responseQueue.length > 0) {
+            const queuedText = this.responseQueue.shift();
+            return {
+                text: queuedText,
+                usage: { promptTokens: params.prompt.length, completionTokens: queuedText.length }
+            };
+        }
+        // Default response jika antrian kosong
         return {
-            text,
+            text: `[MOCK] Response to: ${params.prompt}`,
             usage: {
-                prompt_tokens: 1,
-                completion_tokens: 1
+                promptTokens: params.prompt.length,
+                completionTokens: 10
             }
         };
     }

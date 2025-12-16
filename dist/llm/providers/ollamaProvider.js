@@ -3,42 +3,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.OllamaProvider = void 0;
 class OllamaProvider {
     constructor(model = "llama3", baseUrl = "http://localhost:11434") {
-        this.name = "ollama-local";
+        this.name = "ollama";
         this.model = model;
         this.baseUrl = baseUrl;
     }
-    async generate(request) {
-        try {
-            const payload = {
+    async generate(params) {
+        const response = await fetch(`${this.baseUrl}/api/generate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
                 model: this.model,
-                prompt: request.prompt,
-                system: request.system,
-                stream: false, // Kita pakai non-streaming dulu untuk simplifikasi awal
+                prompt: params.prompt,
+                // Mapping: Jika params punya temperature, pakai. Default 0.7
                 options: {
-                    temperature: request.temperature || 0.7
-                }
-            };
-            const res = await fetch(`${this.baseUrl}/api/generate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-            if (!res.ok) {
-                throw new Error(`Ollama Error: ${res.statusText}`);
+                    temperature: params.temperature ?? 0.7
+                },
+                stream: false
+            })
+        });
+        if (!response.ok) {
+            throw new Error(`Ollama Error: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return {
+            text: data.response,
+            usage: {
+                // Mapping Snake Case (API) -> Camel Case (Interface)
+                promptTokens: data.prompt_eval_count || 0,
+                completionTokens: data.eval_count || 0
             }
-            const data = await res.json(); // Casting any karena struktur Ollama dinamis
-            return {
-                text: data.response,
-                usage: {
-                    prompt_tokens: data.prompt_eval_count || 0,
-                    completion_tokens: data.eval_count || 0
-                }
-            };
-        }
-        catch (err) {
-            // Error handling standard
-            throw new Error(`LLM Generation Failed: ${err.message}`);
-        }
+        };
     }
 }
 exports.OllamaProvider = OllamaProvider;

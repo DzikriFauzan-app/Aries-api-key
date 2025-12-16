@@ -1,20 +1,34 @@
-import { LLMProvider, LLMRequest, LLMResponse } from "../types";
+import { LLMProvider, GenerateParams, GenerateResult } from "../types";
 
 export class MockProvider implements LLMProvider {
-  readonly name = "mock-v1";
-  private queue: string[] = [];
+  name: string;
+  private responseQueue: string[] = [];
 
-  queueResponse(text: string) {
-    this.queue.push(text);
+  constructor(name: string = "mock") {
+    this.name = name;
   }
 
-  async generate(_: LLMRequest): Promise<LLMResponse> {
-    const text = this.queue.shift() || "{}";
+  // Fitur penting untuk Test Injection
+  queueResponse(response: string) {
+    this.responseQueue.push(response);
+  }
+
+  async generate(params: GenerateParams): Promise<GenerateResult> {
+    // Jika ada antrian respon, pakai itu
+    if (this.responseQueue.length > 0) {
+      const queuedText = this.responseQueue.shift()!;
+      return {
+        text: queuedText,
+        usage: { promptTokens: params.prompt.length, completionTokens: queuedText.length }
+      };
+    }
+
+    // Default response jika antrian kosong
     return {
-      text,
+      text: `[MOCK] Response to: ${params.prompt}`,
       usage: {
-        prompt_tokens: 1,
-        completion_tokens: 1
+        promptTokens: params.prompt.length,
+        completionTokens: 10
       }
     };
   }

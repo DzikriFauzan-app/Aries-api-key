@@ -1,49 +1,43 @@
-import { LLMProvider, LLMRequest, LLMResponse } from "../types";
+import { LLMProvider, GenerateParams, GenerateResult } from "../types";
 
 export class OllamaProvider implements LLMProvider {
-  readonly name = "ollama-local";
-  private model: string;
+  name = "ollama";
   private baseUrl: string;
+  private model: string;
 
-  constructor(model: string = "llama3", baseUrl: string = "http://localhost:11434") {
+  constructor(model = "llama3", baseUrl = "http://localhost:11434") {
     this.model = model;
     this.baseUrl = baseUrl;
   }
 
-  async generate(request: LLMRequest): Promise<LLMResponse> {
-    try {
-      const payload = {
+  async generate(params: GenerateParams): Promise<GenerateResult> {
+    const response = await fetch(`${this.baseUrl}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         model: this.model,
-        prompt: request.prompt,
-        system: request.system,
-        stream: false, // Kita pakai non-streaming dulu untuk simplifikasi awal
+        prompt: params.prompt,
+        // Mapping: Jika params punya temperature, pakai. Default 0.7
         options: {
-          temperature: request.temperature || 0.7
-        }
-      };
+          temperature: params.temperature ?? 0.7
+        },
+        stream: false
+      })
+    });
 
-      const res = await fetch(`${this.baseUrl}/api/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        throw new Error(`Ollama Error: ${res.statusText}`);
-      }
-
-      const data = await res.json() as any; // Casting any karena struktur Ollama dinamis
-
-      return {
-        text: data.response,
-        usage: {
-          prompt_tokens: data.prompt_eval_count || 0,
-          completion_tokens: data.eval_count || 0
-        }
-      };
-    } catch (err) {
-      // Error handling standard
-      throw new Error(`LLM Generation Failed: ${(err as Error).message}`);
+    if (!response.ok) {
+      throw new Error(`Ollama Error: ${response.statusText}`);
     }
+
+    const data = await response.json();
+
+    return {
+      text: data.response,
+      usage: {
+        // Mapping Snake Case (API) -> Camel Case (Interface)
+        promptTokens: data.prompt_eval_count || 0,
+        completionTokens: data.eval_count || 0
+      }
+    };
   }
 }
