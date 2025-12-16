@@ -2,6 +2,7 @@ export type EventType =
   // Core Lifecycle
   | "SYSTEM_START"
   | "SYSTEM_ERROR"
+  | "HANDLER_ERROR" // New for Fault Isolation
   | "TEST_EVT"
   | "TEST_EMPTY"
   
@@ -37,8 +38,8 @@ export interface AriesEvent {
   source: string;
   timestamp: number;
   payload: any;
-  correlationId?: string; // Restore correlationId (Optional)
-  signature?: string;     // Security signature (Optional)
+  correlationId?: string;
+  signature?: string;
 }
 
 export type EventHandler = (event: AriesEvent) => Promise<void>;
