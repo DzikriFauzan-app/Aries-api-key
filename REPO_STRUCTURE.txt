@@ -1,0 +1,303 @@
+.
+├── bin
+│   ├── core
+│   │   ├── aries_memory.json
+│   │   ├── cortex.js
+│   │   ├── keyVault.js
+│   │   └── memoryBank.js
+│   ├── events
+│   │   └── eventBus.js
+│   ├── executor
+│   │   ├── actionHandler.js
+│   │   └── executor.js
+│   ├── feac
+│   │   └── feacLoop.js
+│   ├── forensics
+│   │   ├── forensicLogger.js
+│   │   └── hashUtil.js
+│   ├── gateway
+│   │   └── server.js
+│   ├── llm
+│   │   └── nativeBrain.js
+│   ├── memory
+│   │   └── memoryBank.js
+│   ├── neo
+│   │   └── neoEngine.js
+│   ├── reasoning
+│   │   └── reasoningOrchestrator.js
+│   ├── security
+│   │   └── firewall.js
+│   ├── skills
+│   │   ├── general.js
+│   │   ├── math.js
+│   │   └── security.js
+│   ├── translator
+│   │   └── translator.js
+│   ├── boot.js
+│   └── nativeBrain.js
+├── dist
+│   ├── agent
+│   │   ├── agent.js
+│   │   ├── agentCommandDSL.js
+│   │   ├── agentRegistry.js
+│   │   ├── agentTypes.js
+│   │   └── index.js
+│   ├── audit
+│   │   ├── auditEvent.js
+│   │   ├── auditLogger.js
+│   │   ├── traceLogger.js
+│   │   └── traceTypes.js
+│   ├── auth
+│   │   ├── authority.js
+│   │   ├── keyRegistry.js
+│   │   └── types.js
+│   ├── benchmark
+│   │   ├── benchmarkCases.js
+│   │   ├── benchmarkRunner.js
+│   │   └── benchmarkTypes.js
+│   ├── core
+│   │   ├── reasoningEngine.js
+│   │   ├── reasoningTypes.js
+│   │   └── traceLogger.js
+│   ├── events
+│   │   ├── eventBus.js
+│   │   └── eventTypes.js
+│   ├── executor
+│   │   └── executor.js
+│   ├── feac
+│   │   └── feacLoop.js
+│   ├── forensics
+│   │   ├── forensicLogger.js
+│   │   ├── forensicTypes.js
+│   │   ├── hashUtil.js
+│   │   └── replayEngine.js
+│   ├── gateway
+│   │   ├── Gateway.js
+│   │   └── server.js
+│   ├── llm
+│   │   ├── providers
+│   │   │   ├── mockProvider.js
+│   │   │   └── ollamaProvider.js
+│   │   ├── llmFactory.js
+│   │   ├── securedProvider.js
+│   │   └── types.js
+│   ├── memory
+│   │   ├── defaultMemory.js
+│   │   ├── fileMemoryBackend.js
+│   │   ├── index.js
+│   │   ├── memoryBackend.js
+│   │   ├── memoryController.js
+│   │   ├── memoryPolicy.js
+│   │   ├── memoryRecord.js
+│   │   ├── memoryRetention.js
+│   │   ├── memoryScorer.js
+│   │   ├── memoryStore.js
+│   │   ├── memoryTransformer.js
+│   │   └── memoryTypes.js
+│   ├── policy
+│   │   ├── agentPolicyBinder.js
+│   │   ├── permissionMatrix.js
+│   │   ├── permissionTypes.js
+│   │   └── policyEngine.js
+│   ├── reasoning
+│   │   └── reasoningOrchestrator.js
+│   ├── router
+│   │   ├── commandRouter.js
+│   │   └── routingPlan.js
+│   ├── sandbox
+│   │   ├── sandbox.js
+│   │   ├── sandboxError.js
+│   │   └── sandboxPolicy.js
+│   ├── security
+│   │   ├── circuitBreaker.js
+│   │   ├── jailbreak.js
+│   │   ├── llmJail.js
+│   │   └── tokenGovernor.js
+│   ├── tests
+│   │   ├── agentCommandDSL.test.js
+│   │   ├── agentHierarchy.test.js
+│   │   ├── agentPolicyBinder.test.js
+│   │   ├── agentRegistry.test.js
+│   │   ├── auditEnforcement.test.js
+│   │   ├── auditLogger.test.js
+│   │   ├── authority.test.js
+│   │   ├── benchmark.test.js
+│   │   ├── eventBus.test.js
+│   │   ├── executor.test.js
+│   │   ├── feacLoop.test.js
+│   │   ├── fileMemoryBackend.test.js
+│   │   ├── forensicReplay.test.js
+│   │   ├── fsTooling.test.js
+│   │   ├── gateway.test.js
+│   │   ├── llm.test.js
+│   │   ├── llmJail.test.js
+│   │   ├── memoryController.test.js
+│   │   ├── memoryRetention.test.js
+│   │   ├── memorySecurity.test.js
+│   │   ├── memorySovereignty.test.js
+│   │   ├── reasoningOrchestrator.test.js
+│   │   ├── router.test.js
+│   │   ├── sandbox.test.js
+│   │   ├── toolInvoker.test.js
+│   │   └── translator.test.js
+│   ├── tools
+│   │   ├── fs
+│   │   │   ├── fsGuards.js
+│   │   │   ├── fsRegistry.js
+│   │   │   ├── fsTypes.js
+│   │   │   └── index.js
+│   │   ├── echoTool.js
+│   │   ├── tool.js
+│   │   ├── toolInvoker.js
+│   │   ├── toolRegistry.js
+│   │   └── toolTypes.js
+│   ├── translator
+│   │   └── translator.js
+│   └── index.js
+├── forensic_logs
+│   └── events.log
+├── sandbox_test
+│   └── a.txt
+├── scripts
+│   └── aries-boot.js
+├── src
+│   ├── agent
+│   │   ├── agent.ts
+│   │   ├── agentCommandDSL.ts
+│   │   ├── agentRegistry.ts
+│   │   ├── agentTypes.ts
+│   │   └── index.ts
+│   ├── audit
+│   │   ├── auditEvent.ts
+│   │   ├── auditLogger.ts
+│   │   ├── traceLogger.ts
+│   │   └── traceTypes.ts
+│   ├── auth
+│   │   ├── authority.ts
+│   │   ├── keyRegistry.ts
+│   │   └── types.ts
+│   ├── benchmark
+│   │   ├── benchmarkCases.ts
+│   │   ├── benchmarkRunner.ts
+│   │   └── benchmarkTypes.ts
+│   ├── core
+│   │   ├── reasoningEngine.ts
+│   │   ├── reasoningTypes.ts
+│   │   └── traceLogger.ts
+│   ├── events
+│   │   ├── eventBus.ts
+│   │   └── eventTypes.ts
+│   ├── executor
+│   │   └── executor.ts
+│   ├── feac
+│   │   └── feacLoop.ts
+│   ├── forensics
+│   │   ├── forensicLogger.ts
+│   │   ├── forensicTypes.ts
+│   │   ├── hashUtil.ts
+│   │   └── replayEngine.ts
+│   ├── gateway
+│   │   ├── Gateway.ts
+│   │   └── server.ts
+│   ├── llm
+│   │   ├── providers
+│   │   │   ├── mockProvider.ts
+│   │   │   └── ollamaProvider.ts
+│   │   ├── llmFactory.ts
+│   │   ├── securedProvider.ts
+│   │   └── types.ts
+│   ├── memory
+│   │   ├── defaultMemory.ts
+│   │   ├── fileMemoryBackend.ts
+│   │   ├── index.ts
+│   │   ├── memoryBackend.ts
+│   │   ├── memoryController.ts
+│   │   ├── memoryPolicy.ts
+│   │   ├── memoryRecord.ts
+│   │   ├── memoryRetention.ts
+│   │   ├── memoryScorer.ts
+│   │   ├── memoryStore.ts
+│   │   ├── memoryTransformer.ts
+│   │   └── memoryTypes.ts
+│   ├── policy
+│   │   ├── agentPolicyBinder.ts
+│   │   ├── permissionMatrix.ts
+│   │   ├── permissionTypes.ts
+│   │   └── policyEngine.ts
+│   ├── reasoning
+│   │   └── reasoningOrchestrator.ts
+│   ├── router
+│   │   ├── commandRouter.ts
+│   │   └── routingPlan.ts
+│   ├── sandbox
+│   │   ├── sandbox.ts
+│   │   ├── sandboxError.ts
+│   │   └── sandboxPolicy.ts
+│   ├── security
+│   │   ├── circuitBreaker.ts
+│   │   ├── jailbreak.ts
+│   │   ├── llmJail.ts
+│   │   └── tokenGovernor.ts
+│   ├── tests
+│   │   ├── agentCommandDSL.test.ts
+│   │   ├── agentHierarchy.test.ts
+│   │   ├── agentPolicyBinder.test.ts
+│   │   ├── agentRegistry.test.ts
+│   │   ├── auditEnforcement.test.ts
+│   │   ├── auditLogger.test.ts
+│   │   ├── authority.test.ts
+│   │   ├── benchmark.test.ts
+│   │   ├── eventBus.test.ts
+│   │   ├── executor.test.ts
+│   │   ├── feacLoop.test.ts
+│   │   ├── fileMemoryBackend.test.ts
+│   │   ├── forensicReplay.test.ts
+│   │   ├── fsTooling.test.ts
+│   │   ├── gateway.test.ts
+│   │   ├── llm.test.ts
+│   │   ├── llmJail.test.ts
+│   │   ├── memoryController.test.ts
+│   │   ├── memoryRetention.test.ts
+│   │   ├── memorySecurity.test.ts
+│   │   ├── memorySovereignty.test.ts
+│   │   ├── reasoningOrchestrator.test.ts
+│   │   ├── router.test.ts
+│   │   ├── sandbox.test.ts
+│   │   ├── toolInvoker.test.ts
+│   │   └── translator.test.ts
+│   ├── tools
+│   │   ├── fs
+│   │   │   ├── fsGuards.ts
+│   │   │   ├── fsRegistry.ts
+│   │   │   ├── fsTypes.ts
+│   │   │   └── index.ts
+│   │   ├── echoTool.ts
+│   │   ├── tool.ts
+│   │   ├── toolInvoker.ts
+│   │   ├── toolRegistry.ts
+│   │   └── toolTypes.ts
+│   ├── translator
+│   │   └── translator.ts
+│   └── index.ts
+├── tests
+│   ├── benchmark.test.ts
+│   ├── memory.test.ts
+│   ├── policyEngine.test.ts
+│   ├── reasoningEngine.test.ts
+│   ├── router.test.ts
+│   └── traceLogger.test.ts
+├── BUKTI_NYATA.txt
+├── CONTRACT.md
+├── FINAL_TEST.txt
+├── LICENSE
+├── README.md
+├── REPO_STRUCTURE.txt
+├── inspect_aries.sh
+├── inspect_unizan_url.sh
+├── package-lock.json
+├── package.json
+├── push_step_10_6.sh
+├── push_step_11_1.sh
+└── tsconfig.json
+
+65 directories, 236 files
