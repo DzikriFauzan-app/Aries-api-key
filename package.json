@@ -1,6 +1,6 @@
 {
   "name": "aries-api-key",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "node -e \"require('fs').readdirSync('dist/tests').filter(f=>f.endsWith('.test.js')).sort().forEach(f=>{console.log('[TEST]',f); require('./dist/tests/'+f);})\"",
