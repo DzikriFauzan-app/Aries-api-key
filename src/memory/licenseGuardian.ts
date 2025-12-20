@@ -3,12 +3,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PardonService } from "./pardonService";
 import { ImmutableAuditLog } from "../audit/immutableAuditLog";
+import { IpRotationPolicy } from "./ipRotationPolicy";
 
 export class LicenseGuardian {
     private static SECRET_SALT = 'MASTER_SECRET_KEY_ARIES';
     private static LOCK_FILE = path.join(process.cwd(), '.sys_lock');
     private static MEMORY_FILE = path.join(process.cwd(), 'sovereign_memory.json');
-    protected static REG_IPS_FILE = path.join(process.cwd(), 'data/registered_ips.json');
+    protected static REG_IPS_FILE = path.join(process.cwd(), 'data', 'registered_ips.json');
     private static ALGORITHM = 'AES-256-CBC';
     private static MASTER_RECOVERY_KEY = crypto.scryptSync('MASTER_RECOVERY_KEY_1000_USD', 'salt', 32);
 
@@ -24,28 +25,29 @@ export class LicenseGuardian {
         if (!fs.existsSync(path.dirname(this.REG_IPS_FILE))) {
             fs.mkdirSync(path.dirname(this.REG_IPS_FILE), { recursive: true });
         }
-        let db: Record<string, string[]> = fs.existsSync(this.REG_IPS_FILE) 
-            ? JSON.parse(fs.readFileSync(this.REG_IPS_FILE, 'utf-8')) 
-            : {};
-        const registeredIps = db[userId] || [];
+        let db: Record<string, any[]> = fs.existsSync(this.REG_IPS_FILE) 
+            ? JSON.parse(fs.readFileSync(this.REG_IPS_FILE, 'utf-8')) : {};
+        
+        let records = db[userId] || [];
         const details = this.getTierDetails(plan);
 
-        if (registeredIps.includes(currentIp)) return true;
-        if (registeredIps.length < details.slots) {
-            registeredIps.push(currentIp);
-            db[userId] = registeredIps;
+        // Check if IP exists (handling both string and object types)
+        const existingIdx = records.findIndex(r => (typeof r === 'string' ? r : r.ip) === currentIp);
+
+        if (existingIdx !== -1) {
+            IpRotationPolicy.touch(userId, currentIp);
+            return true;
+        }
+
+        if (records.length < details.slots) {
+            records.push({ ip: currentIp, lastSeen: Date.now() });
+            db[userId] = records;
             fs.writeFileSync(this.REG_IPS_FILE, JSON.stringify(db, null, 2));
-            
-            // Audit Log: Auto Registration
             ImmutableAuditLog.append("IP_AUTO_REGISTERED", { userId, ip: currentIp, plan });
             return true;
         }
 
-        console.log(`[BAN] Unauthorized IP ${currentIp} for ${userId}. Slot Full!`);
-        
-        // Audit Log: Slot Exceeded Ban
         ImmutableAuditLog.append("SLOT_EXCEEDED_BAN", { userId, ip: currentIp, plan, limit: details.slots });
-        
         this.triggerInternalSeizure(userId);
         return false;
     }
@@ -55,21 +57,18 @@ export class LicenseGuardian {
         if (!payload) return { allowed: false, message: "INVALID_OR_EXPIRED_PARDON" };
 
         const { userId, ip } = payload;
-        let db: Record<string, string[]> = fs.existsSync(this.REG_IPS_FILE) 
+        let db: Record<string, any[]> = fs.existsSync(this.REG_IPS_FILE) 
             ? JSON.parse(fs.readFileSync(this.REG_IPS_FILE, "utf-8")) : {};
         
-        const ips: string[] = db[userId] || [];
-        if (!ips.includes(ip)) {
-            ips.push(ip);
-            db[userId] = ips;
+        let records = db[userId] || [];
+        if (!records.some(r => (typeof r === 'string' ? r : r.ip) === ip)) {
+            records.push({ ip: ip, lastSeen: Date.now() });
+            db[userId] = records;
             fs.writeFileSync(this.REG_IPS_FILE, JSON.stringify(db, null, 2));
         }
 
         if (fs.existsSync(this.LOCK_FILE)) fs.unlinkSync(this.LOCK_FILE);
-
-        // Audit Log: Pardon Applied
         ImmutableAuditLog.append("PARDON_APPLIED", { userId, ip });
-
         return { allowed: true, message: "PARDON_APPLIED_SUCCESSFULLY" };
     }
 
@@ -91,21 +90,12 @@ export class LicenseGuardian {
     }
 
     private static handleExternalAttack(userId: string, intruderIp: string): void {
-        console.log(`[SAFEGUARD] External Breach from ${intruderIp}. Relocating...`);
-        if (fs.existsSync(this.MEMORY_FILE)) {
-            fs.writeFileSync(this.MEMORY_FILE, crypto.randomBytes(2048).toString('hex'));
-        }
-        const lockData = { 
-            status: "SECURED_BY_MASTER", 
-            userId, 
-            appealStatus: "FREE_RESTORATION_ELIGIBLE", 
-            message: "Security Alert: Serangan luar terdeteksi. Data diamankan di Cloud." 
-        };
+        if (fs.existsSync(this.MEMORY_FILE)) fs.writeFileSync(this.MEMORY_FILE, crypto.randomBytes(2048).toString('hex'));
+        const lockData = { status: "SECURED_BY_MASTER", userId, message: "Security Alert: Serangan luar terdeteksi." };
         fs.writeFileSync(this.LOCK_FILE, JSON.stringify(lockData, null, 2));
     }
 
     private static triggerInternalSeizure(userId: string): void {
-        console.log("[PENALTY] Internal fraud detected. Encrypting assets...");
         if (fs.existsSync(this.MEMORY_FILE)) {
             const rawData = fs.readFileSync(this.MEMORY_FILE, 'utf-8');
             const iv = crypto.randomBytes(16);
@@ -113,32 +103,19 @@ export class LicenseGuardian {
             let encrypted = cipher.update(rawData, 'utf8', 'hex') + cipher.final('hex');
             fs.writeFileSync(this.MEMORY_FILE, iv.toString('hex') + ":" + encrypted);
         }
-        const lockData = { 
-            status: "BANNED", 
-            userId, 
-            fine: "1000 USD", 
-            message: "Pelanggaran Lisensi: Bayar $1000 untuk kunci dekripsi." 
-        };
+        const lockData = { status: "BANNED", userId, fine: "1000 USD", message: "Pelanggaran Lisensi." };
         fs.writeFileSync(this.LOCK_FILE, JSON.stringify(lockData, null, 2));
     }
 
     private static detectTamperingDuringLock(): void {
         const lockInfo = JSON.parse(fs.readFileSync(this.LOCK_FILE, 'utf-8'));
         if (lockInfo.status === "BANNED") {
-            console.log("!!! SABOTASE TERDETEKSI - PENGHANCURAN PERMANEN !!!");
-            const trash = crypto.createHash('sha512').update(crypto.randomBytes(1024)).digest('hex');
-            fs.writeFileSync(this.MEMORY_FILE, trash);
+            fs.writeFileSync(this.MEMORY_FILE, crypto.randomBytes(1024).toString('hex'));
             fs.writeFileSync(this.LOCK_FILE, JSON.stringify({ status: "DESTROYED_BEYOND_REPAIR" }));
         }
     }
 
     static generateDeliveryPackage(userId: string, officeIp: string) {
-        const user = `ARIES_RECOVERY_${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
-        const pass = crypto.randomBytes(16).toString('base64');
-        return {
-            credentials: { user, pass },
-            security: { lockedToIp: officeIp },
-            link: `https://vault.aries.sh/download/${userId}`
-        };
+        return { credentials: { user: `ARIES_RECOVERY_${crypto.randomBytes(2).toString('hex').toUpperCase()}`, pass: crypto.randomBytes(16).toString('base64') }, security: { lockedToIp: officeIp } };
     }
 }
