@@ -1,62 +1,59 @@
-import * as crypto from "crypto";
-
-interface OtpRecord {
-  hash: string;
-  expiresAt: number;
+type OtpEntry = {
   userId: string;
   ip: string;
-  role: string;
-}
+  codesHash: string;
+  expiresAt: number;
+  attempts: number;
+};
 
-const LEDGER = new Map<string, OtpRecord>();
-const TTL_MS = 2 * 60 * 1000; // 2 Menit
-
-function hashOtp(codes: string[]): string {
-  return crypto
-    .createHash("sha256")
-    .update(codes.join(":"))
-    .digest("hex");
-}
+const LEDGER = new Map<string, OtpEntry>();
+const MAX_ATTEMPTS = 3;
+const TTL_MS = 120_000; // 2 Menit
 
 export class OtpLedger {
-  static create(userId: string, ip: string, role: string, codes: string[]) {
-    const key = `${userId}:${ip}`;
-    LEDGER.set(key, {
-      hash: hashOtp(codes),
-      expiresAt: Date.now() + TTL_MS,
-      userId,
-      ip,
-      role
-    });
+  static put(key: string, entry: OtpEntry) {
+    LEDGER.set(key, entry);
   }
 
-  static verify(userId: string, ip: string, inputCodes: string[]): boolean {
-    const key = `${userId}:${ip}`;
-    const record = LEDGER.get(key);
-
-    if (!record) return false;
-
-    // Cek Kadaluarsa
-    if (Date.now() > record.expiresAt) {
+  static get(key: string): OtpEntry | undefined {
+    const e = LEDGER.get(key);
+    if (!e) return undefined;
+    
+    // Auto-check TTL saat diakses
+    if (Date.now() > e.expiresAt) {
       LEDGER.delete(key);
-      return false;
+      return undefined;
     }
+    return e;
+  }
 
-    const inputHash = hashOtp(inputCodes);
-    const ok = inputHash === record.hash;
-
-    // ONE-TIME USE: Jika benar, langsung hapus agar tidak bisa di-replay
-    if (ok) {
+  static fail(key: string) {
+    const e = LEDGER.get(key);
+    if (!e) return;
+    e.attempts += 1;
+    if (e.attempts >= MAX_ATTEMPTS) {
+      console.log(`[SECURITY] Max attempts reached for ${key}. Purging.`);
       LEDGER.delete(key);
     }
+  }
 
-    return ok;
+  static consume(key: string) {
+    LEDGER.delete(key);
   }
 
   static purgeExpired() {
     const now = Date.now();
+    let count = 0;
     for (const [k, v] of LEDGER.entries()) {
-      if (v.expiresAt < now) LEDGER.delete(k);
+      if (now > v.expiresAt) {
+        LEDGER.delete(k);
+        count++;
+      }
     }
+    if (count > 0) console.log(`[CLEANUP] Purged ${count} expired OTP entries.`);
+  }
+
+  static size() {
+    return LEDGER.size;
   }
 }

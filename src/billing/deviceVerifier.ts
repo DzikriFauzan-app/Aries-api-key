@@ -1,38 +1,45 @@
-import { getPlanLimit } from "./planContract";
+import * as crypto from "crypto";
 import { OtpLedger } from "./otpLedger";
+import { getPlanLimit } from "./planContract";
 import { BlacklistStore } from "./blacklistStore";
 
+function hashCodes(codes: string[]) {
+  return crypto.createHash("sha256").update(codes.join("-")).digest("hex");
+}
+
 export class DeviceVerifier {
-  static initiateIpVerification(userId: string, plan: string, newIp: string) {
-    // Cek Blacklist dulu sesuai Step 19.5
-    if (BlacklistStore.isBlacklisted(userId, newIp)) {
-      console.log(`[DENIED] IP ${newIp} dalam BLACKLIST.`);
-      return null;
-    }
+  static initiateIpVerification(userId: string, plan: string, ip: string) {
+    if (BlacklistStore.isBlacklisted(userId, ip)) return null;
 
     const limit = getPlanLimit(plan);
-    const codes = Array.from({ length: 5 }, () => 
-      Math.floor(1000 + Math.random() * 9000).toString()
-    );
+    const codes = Array.from({ length: 5 }, () => Math.floor(1000 + Math.random() * 9000).toString());
+    const key = `${userId}:${ip}`;
 
-    // Daftarkan ke Ledger dengan Hash
-    OtpLedger.create(userId, newIp, limit.verifierRole, codes);
+    OtpLedger.put(key, {
+      userId,
+      ip,
+      codesHash: hashCodes(codes),
+      expiresAt: Date.now() + 120_000,
+      attempts: 0
+    });
 
-    console.log(`[AUTH] IP ${newIp} butuh verifikasi oleh ${limit.verifierRole}`);
-    console.log(`[AUTH] OTP dikirim ke perangkat otoritas (Hidden)`);
-    
-    return codes; // Hanya untuk testing, produksi dikirim via jalur privat
+    console.log(`[AUTH] Verifikasi dipicu untuk ${userId} @ ${ip}. Role: ${limit.verifierRole}`);
+    return codes;
   }
 
   static verify(userId: string, ip: string, inputCodes: string[]): boolean {
-    return OtpLedger.verify(userId, ip, inputCodes);
-  }
+    const key = `${userId}:${ip}`;
+    const entry = OtpLedger.get(key);
 
-  static processManagerDecision(userId: string, ip: string, approved: boolean) {
-    if (!approved) {
-      BlacklistStore.blacklistIp(userId, ip);
-      return "REJECTED_AND_BLACKLISTED";
+    if (!entry) return false;
+
+    const ok = entry.codesHash === hashCodes(inputCodes);
+    if (!ok) {
+      OtpLedger.fail(key);
+      return false;
     }
-    return "APPROVED";
+
+    OtpLedger.consume(key); // SUCCESS -> Anti-Replay
+    return true;
   }
 }
