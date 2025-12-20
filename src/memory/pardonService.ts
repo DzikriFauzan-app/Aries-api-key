@@ -1,6 +1,7 @@
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
+import { ImmutableAuditLog } from "../audit/immutableAuditLog";
 
 export interface PardonTokenPayload {
     userId: string;
@@ -31,6 +32,10 @@ export class PardonService {
         ).toString("base64");
 
         this.storeToken(token);
+        
+        // Audit Log: Pardon Issued
+        ImmutableAuditLog.append("PARDON_ISSUED", { userId, ip, expiresAt: payload.expiresAt });
+        
         return token;
     }
 

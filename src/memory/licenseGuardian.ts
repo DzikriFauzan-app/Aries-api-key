@@ -2,11 +2,8 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PardonService } from "./pardonService";
+import { ImmutableAuditLog } from "../audit/immutableAuditLog";
 
-/**
- * ARIES SOVEREIGN PROTECTION PROTOCOL (Step 15.5 - 18.5)
- * Kedaulatan penuh dengan sistem Pengampunan (Pardon) Kriptografis.
- */
 export class LicenseGuardian {
     private static SECRET_SALT = 'MASTER_SECRET_KEY_ARIES';
     private static LOCK_FILE = path.join(process.cwd(), '.sys_lock');
@@ -15,7 +12,6 @@ export class LicenseGuardian {
     private static ALGORITHM = 'AES-256-CBC';
     private static MASTER_RECOVERY_KEY = crypto.scryptSync('MASTER_RECOVERY_KEY_1000_USD', 'salt', 32);
 
-    // --- 1. KASTA, HARGA & LOGIKA SLOT (18.4) ---
     static getTierDetails(plan: string) {
         const p = plan.toUpperCase();
         if (p === 'FREE' || p === 'PRO') return { slots: 1 };
@@ -24,7 +20,6 @@ export class LicenseGuardian {
         return { slots: 50 + (level - 1) * 25 };
     }
 
-    // --- 2. VALIDASI AKSES KORPORAT & AUTO-BAN ---
     static async validateCorporateAccess(plan: string, userId: string, currentIp: string): Promise<boolean> {
         if (!fs.existsSync(path.dirname(this.REG_IPS_FILE))) {
             fs.mkdirSync(path.dirname(this.REG_IPS_FILE), { recursive: true });
@@ -40,15 +35,21 @@ export class LicenseGuardian {
             registeredIps.push(currentIp);
             db[userId] = registeredIps;
             fs.writeFileSync(this.REG_IPS_FILE, JSON.stringify(db, null, 2));
+            
+            // Audit Log: Auto Registration
+            ImmutableAuditLog.append("IP_AUTO_REGISTERED", { userId, ip: currentIp, plan });
             return true;
         }
 
         console.log(`[BAN] Unauthorized IP ${currentIp} for ${userId}. Slot Full!`);
+        
+        // Audit Log: Slot Exceeded Ban
+        ImmutableAuditLog.append("SLOT_EXCEEDED_BAN", { userId, ip: currentIp, plan, limit: details.slots });
+        
         this.triggerInternalSeizure(userId);
         return false;
     }
 
-    // --- 3. PARDON SYSTEM: PENGAMPUNAN MANAGER (18.5) ---
     static applyPardon(token: string): { allowed: boolean; message: string } {
         const payload = PardonService.validate(token);
         if (!payload) return { allowed: false, message: "INVALID_OR_EXPIRED_PARDON" };
@@ -64,13 +65,14 @@ export class LicenseGuardian {
             fs.writeFileSync(this.REG_IPS_FILE, JSON.stringify(db, null, 2));
         }
 
-        // Hapus Lock jika ada setelah Pardon diberikan
         if (fs.existsSync(this.LOCK_FILE)) fs.unlinkSync(this.LOCK_FILE);
+
+        // Audit Log: Pardon Applied
+        ImmutableAuditLog.append("PARDON_APPLIED", { userId, ip });
 
         return { allowed: true, message: "PARDON_APPLIED_SUCCESSFULLY" };
     }
 
-    // --- 4. VERIFIKASI INTEGRITAS SISTEM ---
     static async verifySystemIntegritas(plan: string, userId: string, signature: string, currentIp: string, allowedIps: string[]): Promise<boolean> {
         if (fs.existsSync(this.LOCK_FILE)) {
             this.detectTamperingDuringLock();
@@ -88,7 +90,6 @@ export class LicenseGuardian {
         return true;
     }
 
-    // --- 5. PROTOKOL SERANGAN LUAR ---
     private static handleExternalAttack(userId: string, intruderIp: string): void {
         console.log(`[SAFEGUARD] External Breach from ${intruderIp}. Relocating...`);
         if (fs.existsSync(this.MEMORY_FILE)) {
@@ -103,7 +104,6 @@ export class LicenseGuardian {
         fs.writeFileSync(this.LOCK_FILE, JSON.stringify(lockData, null, 2));
     }
 
-    // --- 6. PROTOKOL FRAUD INTERNAL ---
     private static triggerInternalSeizure(userId: string): void {
         console.log("[PENALTY] Internal fraud detected. Encrypting assets...");
         if (fs.existsSync(this.MEMORY_FILE)) {
@@ -122,7 +122,6 @@ export class LicenseGuardian {
         fs.writeFileSync(this.LOCK_FILE, JSON.stringify(lockData, null, 2));
     }
 
-    // --- 7. ANTI-TAMPER ---
     private static detectTamperingDuringLock(): void {
         const lockInfo = JSON.parse(fs.readFileSync(this.LOCK_FILE, 'utf-8'));
         if (lockInfo.status === "BANNED") {
