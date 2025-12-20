@@ -10,7 +10,6 @@ export class LicenseGuardian {
     private static ALGORITHM = 'aes-256-cbc';
     private static MASTER_RECOVERY_KEY = crypto.scryptSync('MASTER_RECOVERY_KEY_1000_USD', 'salt', 32);
 
-    // --- 1. KASTA, HARGA & SLOT (18.4) ---
     static getTierDetails(plan: string) {
         const p = plan.toUpperCase();
         if (p === 'FREE' || p === 'PRO') return { slots: 1 };
@@ -19,7 +18,6 @@ export class LicenseGuardian {
         return { slots: 50 + (level - 1) * 25 };
     }
 
-    // --- 2. VALIDASI CORPORATE & AUTO-BAN (18.4) ---
     static async validateCorporateAccess(plan: string, userId: string, currentIp: string): Promise<boolean> {
         if (!fs.existsSync(path.dirname(this.REG_IPS_FILE))) {
             fs.mkdirSync(path.dirname(this.REG_IPS_FILE), { recursive: true });
@@ -31,7 +29,6 @@ export class LicenseGuardian {
         const details = this.getTierDetails(plan);
 
         if (registeredIps.includes(currentIp)) return true;
-
         if (registeredIps.length < details.slots) {
             registeredIps.push(currentIp);
             db[userId] = registeredIps;
@@ -44,7 +41,6 @@ export class LicenseGuardian {
         return false;
     }
 
-    // --- 3. VERIFIKASI INTEGRITAS (16.7 - 18.2) ---
     static async verifySystemIntegritas(plan: string, userId: string, signature: string, currentIp: string, allowedIps: string[]): Promise<boolean> {
         if (fs.existsSync(this.LOCK_FILE)) {
             this.detectTamperingDuringLock();
@@ -63,7 +59,6 @@ export class LicenseGuardian {
         return true;
     }
 
-    // --- 4. PROTOKOL PENYELAMATAN (16.2) ---
     private static handleExternalAttack(userId: string, intruderIp: string): void {
         console.log(`[SAFEGUARD] External Breach from ${intruderIp}. Relocating...`);
         if (fs.existsSync(this.MEMORY_FILE)) {
@@ -78,7 +73,6 @@ export class LicenseGuardian {
         fs.writeFileSync(this.LOCK_FILE, JSON.stringify(lockData, null, 2));
     }
 
-    // --- 5. PROTOKOL PENYITAAN (17.1) ---
     private static triggerInternalSeizure(userId: string): void {
         console.log("[PENALTY] Internal fraud detected. Encrypting assets...");
         if (fs.existsSync(this.MEMORY_FILE)) {
@@ -97,7 +91,6 @@ export class LicenseGuardian {
         fs.writeFileSync(this.LOCK_FILE, JSON.stringify(lockData, null, 2));
     }
 
-    // --- 6. SELF-DESTRUCT (16.6) ---
     private static detectTamperingDuringLock(): void {
         const lockInfo = JSON.parse(fs.readFileSync(this.LOCK_FILE, 'utf-8'));
         if (lockInfo.status === "BANNED") {
@@ -108,7 +101,6 @@ export class LicenseGuardian {
         }
     }
 
-    // --- 7. DELIVERY PACKAGE (18.3) ---
     static generateDeliveryPackage(userId: string, officeIp: string) {
         const user = `ARIES_RECOVERY_${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
         const pass = crypto.randomBytes(16).toString('base64');
