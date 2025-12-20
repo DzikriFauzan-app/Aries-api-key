@@ -2,3 +2,4 @@ data/
 dist/
 node_modules/
 *.key.json
+cold_storage/snapshots/

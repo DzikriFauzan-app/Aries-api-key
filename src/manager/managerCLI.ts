@@ -3,6 +3,7 @@ import * as path from "path";
 import { assertManagerAccess } from "./managerAuth";
 import { IpRotationPolicy } from "../memory/ipRotationPolicy";
 import { ImmutableAuditLog } from "../audit/immutableAuditLog";
+import { ColdStorageSnapshot } from "./coldStorageSnapshot";
 
 const DB_FILE = path.join(process.cwd(), "data", "registered_ips.json");
 const [, , action, ...args] = process.argv;
@@ -29,14 +30,19 @@ async function main() {
             console.log(db[userId] || []);
             break;
         }
+        case "rotate": {
+            const [userId, oldIp, newIp] = args;
+            const res = IpRotationPolicy.rotateIp(userId, oldIp, newIp);
+            console.log(res);
+            break;
+        }
         case "pardon": {
             const [userId, ip] = args;
             const db = loadDb();
             db[userId] = db[userId] || [];
-            // Simpan sebagai object agar sinkron dengan IpRotationPolicy
             db[userId].push({ ip, lastSeen: Date.now() });
             saveDb(db);
-            ImmutableAuditLog.append("MANAGER_PARDON", { userId, ip });
+            ImmutableAuditLog.append("PARDON_GRANTED_BY_MANAGER", { userId, ip });
             console.log("✅ PARDON_GRANTED");
             break;
         }
@@ -44,8 +50,19 @@ async function main() {
             console.log("AUDIT_CHAIN_VALID:", ImmutableAuditLog.verifyChain());
             break;
         }
+        case "snapshot": {
+            const [label] = args;
+            const res = ColdStorageSnapshot.create(label || "MANUAL");
+            console.log("SNAPSHOT_CREATED:", res);
+            break;
+        }
+        case "snapshot-verify": {
+            const [id] = args;
+            console.log("SNAPSHOT_VALID:", ColdStorageSnapshot.verify(id));
+            break;
+        }
         default:
-            console.log("Actions: inspect, pardon, audit-verify");
+            console.log(`Actions: inspect, rotate, pardon, audit-verify, snapshot, snapshot-verify`);
     }
 }
 main().catch(err => { console.error("MANAGER_CLI_ERROR:", err.message); });
