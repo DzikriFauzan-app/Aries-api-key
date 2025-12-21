@@ -40,3 +40,22 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🛰️  Endpoint: http://10.4.35.107:${PORT}`);
     console.log(`🔐 Security: Connected to Private Owner Key (${KEY_PATH})\n`);
 });
+
+// --- BRIDGE TO NEO ENGINE (THE EXECUTIONER) ---
+app.post('/api/bridge/neo', async (req, res) => {
+  const { task, payload } = req.body;
+  console.log(`🧠 [ARIES] Directing Neo to execute: ${task}`);
+  
+  try {
+    // Aries memerintah Neo di port 3001
+    const neoResponse = await fetch('http://localhost:3001/api/neo/task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: task, ...payload })
+    });
+    const data = await neoResponse.json();
+    res.json({ success: true, from_neo: data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Neo Engine Offline" });
+  }
+});
