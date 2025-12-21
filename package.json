@@ -9,10 +9,33 @@
     "test": "node -e \"require('fs').readdirSync('dist/tests').filter(f=>f.endsWith('.test.js')).sort().forEach(f=>require('./dist/tests/'+f))\""
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^25.0.3"
   },
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
     "fastify": "^5.6.2",
     "zod": "^4.2.1"
-  }
+  },
+  "description": "Api key",
+  "bin": {
+    "aries-api-key": "bin/boot.js"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://GANTI_DENGAN_TOKEN_ASLI_DISINI@github.com/DzikriFauzan-app/Aries-api-key.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/DzikriFauzan-app/Aries-api-key/issues"
+  },
+  "homepage": "https://github.com/DzikriFauzan-app/Aries-api-key#readme"
 }

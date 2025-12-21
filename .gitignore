@@ -1,5 +1,19 @@
-data/
-dist/
+# Node.js
 node_modules/
-*.key.json
-cold_storage/snapshots/
+dist/
+npm-debug.log*
+
+# ARIES PRIVATE DATA (Sovereign Level)
+data/
+knowledge_pool.json
+src/data/
+
+# Environment
+.env
+
+# System Files
+.DS_Store
+pardon_tokens.json
+registered_ips.json
+quota_tracker.json
+*.log
