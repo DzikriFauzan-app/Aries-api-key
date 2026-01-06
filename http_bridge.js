@@ -9,6 +9,6 @@ app.post("/v1/command", async (req, res) => {
   res.json(out);
 });
 
-app.listen(3333, () => {
+app.listen(3333, '0.0.0.0', () => {
   console.log("ARIES HTTP BRIDGE ON 3333");
 });

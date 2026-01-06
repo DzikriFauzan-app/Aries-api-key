@@ -95,7 +95,7 @@ class AriesGateway {
     }
 
     start() {
-        this.app.listen(this.port, () => {
+        this.app.listen(this.port, '0.0.0.0', () => {
             console.log(`[GATEWAY] 🌐 ARIES API v2.0 LISTENING ON PORT ${this.port}`);
         });
     }

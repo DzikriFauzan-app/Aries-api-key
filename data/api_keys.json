@@ -1,0 +1,24 @@
+[
+  {
+    "key": "aries-38d05f952e5d5c352b7eae7ce3081cbdc0ff17a5",
+    "owner": "OWNER",
+    "scopes": [
+      "brain",
+      "memory",
+      "tools"
+    ],
+    "quota": 100000,
+    "createdAt": 1766072650253
+  },
+  {
+    "key": "aries-3f264664658a330f62fabcffc8100a736f3edb46",
+    "owner": "OWNER",
+    "scopes": [
+      "brain",
+      "memory",
+      "tools"
+    ],
+    "quota": 100000,
+    "createdAt": 1766073355989
+  }
+]

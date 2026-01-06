@@ -17,3 +17,18 @@ export const callCouncil = async (agent: string, command: string, params: any = 
         throw error;
     }
 };
+
+export const sendBatchToNeo = async (tasks: any[]) => {
+    const payload = {
+        type: "BATCH_EXECUTION",
+        count: tasks.length,
+        data: tasks,
+        timestamp: Date.now()
+    };
+    try {
+        const response = await axios.post(`${NEO_URL}/api/task/batch`, payload);
+        return response.data;
+    } catch (error) {
+        console.error("[Aries] Batch Deployment Failed", error);
+    }
+};

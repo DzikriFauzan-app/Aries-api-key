@@ -1,0 +1,33 @@
+{
+  "stress-test-key-jf45p9": {
+    "used": 10000,
+    "lastUsedAt": 1766154862811
+  },
+  "stress-test-key-83v695": {
+    "used": 100000,
+    "lastUsedAt": 1766154881566
+  },
+  "extreme-key-ppdx8b": {
+    "used": 200000,
+    "lastUsedAt": 1766156461946
+  },
+  "extreme-key-fy1069": {
+    "used": 500000,
+    "lastUsedAt": 1766156514873
+  },
+  "conc-key-0e3vrm": {
+    "used": 10000,
+    "lastUsedAt": 1766156786895
+  },
+  "conc-key-epaju": {
+    "used": 50000,
+    "lastUsedAt": 1766156792825
+  },
+  "conc-key-z9t7nj": {
+    "used": 100000,
+    "lastUsedAt": 1766156804820
+  },
+  "mega-key-1m": 1000001,
+  "conc-boss-CONC_30K": 30000,
+  "conc-boss-CONC_50K": 50000
+}
