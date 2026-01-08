@@ -12,7 +12,11 @@ class KeyRegistry {
         this.keys.set(keyDef.key, keyDef);
     }
     validate(keyString) {
-        return this.keys.get(keyString) || null;
+        const found = this.keys.get(keyString);
+        if (found) {
+            console.log(`[AUTH] Access Granted: ${found.owner} as ${found.role}`);
+        }
+        return found || null;
     }
 }
 exports.KeyRegistry = KeyRegistry;
