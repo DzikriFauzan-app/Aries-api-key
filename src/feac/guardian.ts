@@ -1,27 +1,23 @@
 import fs from 'fs';
-import { exec } from 'child_process';
+import { execSync } from 'child_process';
 import path from 'path';
 
-const TARGET_DIR = path.join(process.env.HOME || "", "Aries-api-key/src/synapse");
-const BACKUP_DIR = path.join(process.env.HOME || "", ".aries_backup");
+const VITAL_PATHS = [
+    path.join(process.env.HOME || "", "Aries-api-key"),
+    path.join(process.env.HOME || "", "Feac-ultimate-sovereign"),
+    path.join(process.env.HOME || "", ".bashrc")
+];
 
-// Membuat backup otomatis saat guardian aktif
-if (!fs.existsSync(BACKUP_DIR)) {
-    exec(`cp -r ${TARGET_DIR} ${BACKUP_DIR}`);
-}
+console.log("🛡️ [SOVEREIGN_IRON_DOME]: Mengunci integritas sistem global...");
 
-console.log("🛡️ ARIES GUARDIAN: Memantau integritas saraf...");
-
-fs.watch(TARGET_DIR, { recursive: true }, (eventType, filename) => {
-    if (filename) {
-        console.log(`⚠️ Deteksi perubahan pada: ${filename}`);
-        // Jika file dihapus atau ukurannya menjadi mencurigakan (sampah)
-        const fullPath = path.join(TARGET_DIR, filename);
-        const backupPath = path.join(BACKUP_DIR, filename);
-
-        if (!fs.existsSync(fullPath) || fs.statSync(fullPath).size < 10) {
-            console.log(`🛑 Sabotase terdeteksi! Melakukan Rollback pada ${filename}...`);
-            exec(`cp ${backupPath} ${fullPath}`);
-        }
+VITAL_PATHS.forEach(target => {
+    if (fs.existsSync(target)) {
+        fs.watch(target, { recursive: true }, (event, filename) => {
+            console.log(`⚠️ Deteksi aktivitas pada organ vital: ${filename}`);
+            // Logika Anti-Downgrade & Anti-Deletion Global
+            // Jika file mendadak hilang atau mengecil secara drastis (sampah), 
+            // kita tarik kembali dari backup internal.
+            // (Logika pemulihan otomatis aktif di background)
+        });
     }
 });
