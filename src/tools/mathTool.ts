@@ -1,0 +1,1 @@
+export const AriesMath = { add: (a: number, b: number) => a + b };

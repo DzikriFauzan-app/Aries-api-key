@@ -1,76 +1,71 @@
-import {
-  ReasoningPlan,
-  ReasoningResult,
-  ReasoningStep
-} from "./reasoningTypes";
+import { ReasoningResult } from "./reasoningTypes";
+import { AriesEvolution } from "./evolution";
+import * as fs from 'fs';
+import { execSync } from 'child_process';
 
 export class ReasoningEngine {
+    public static async synthesize(prompt: string): Promise<ReasoningResult> {
+        let cleanPrompt = this.extractPrompt(prompt);
+        
+        if (cleanPrompt.toLowerCase().includes("asimilasi")) {
+            const status = await AriesEvolution.assimilateUpgrade();
+            return this.createResponse(`[ASIMILASI] ${status.message}`, "Evolution", cleanPrompt);
+        }
 
-  public execute(goal: string, input: string): ReasoningResult {
-    const steps: ReasoningStep[] = [];
+        // PENCARIAN ABSOLUT TANPA FILTER KATA "CARI/FILE"
+        if (cleanPrompt.toLowerCase().includes("temukan") || cleanPrompt.toLowerCase().includes("search")) {
+            return this.performGlobalSearch(cleanPrompt);
+        }
 
-    // STEP 0 — PREMISE
-    steps.push({
-      id: 0,
-      type: "premise",
-      description: "Define initial facts and scope",
-      input: input,
-      output: input
-    });
+        if (cleanPrompt.toLowerCase().includes("baca file")) {
+            return this.handleDeepRead(cleanPrompt);
+        }
 
-    // STEP 1 — INFERENCE
-    const inferenceOutput = this.infer(input);
-    steps.push({
-      id: 1,
-      type: "inference",
-      description: "Apply deterministic inference rules",
-      input: input,
-      output: inferenceOutput
-    });
-
-    // STEP 2 — VALIDATION
-    const validationOutput = this.validate(inferenceOutput);
-    steps.push({
-      id: 2,
-      type: "validation",
-      description: "Validate logical consistency",
-      input: inferenceOutput,
-      output: validationOutput
-    });
-
-    // STEP 3 — SYNTHESIS
-    const synthesisOutput = this.synthesize(validationOutput);
-    steps.push({
-      id: 3,
-      type: "synthesis",
-      description: "Produce final answer",
-      input: validationOutput,
-      output: synthesisOutput
-    });
-
-    const plan: ReasoningPlan = {
-      goal,
-      steps
-    };
-
-    return {
-      finalAnswer: synthesisOutput,
-      plan
-    };
-  }
-
-  private infer(input: string): string {
-    return `INFERRED(${input})`;
-  }
-
-  private validate(input: string): string {
-    if (!input || input.length === 0) {
-      throw new Error("VALIDATION_FAILED: empty inference");
+        return this.createResponse(`[DEIFIC_LOGIC] Sovereign, sistem siap melacak 41 Agen Anda.`, "Logic", cleanPrompt);
     }
-    return `VALID(${input})`;
-  }
 
-  private synthesize(input: string): string {
-    return `ANSWER(${input})`;
-  }
+    private static performGlobalSearch(query: string): any {
+        try {
+            // Mengambil kata kunci terakhir setelah kata "temukan" atau "search"
+            const parts = query.split(/temukan|search/i);
+            const keyword = parts[parts.length - 1].trim();
+            
+            // Mencari di seluruh folder NeoEngine untuk menemukan file .py agen
+            const cmd = `find "/sdcard/Buku saya/Fauzan engine/NeoEngine" -iname "*${keyword}*" | head -n 20`;
+            const result = execSync(cmd).toString().trim();
+            
+            return this.createResponse(`[GLOBAL_SCOUT] Hasil pelacakan "${keyword}":\n${result ? result : "Tidak ditemukan fisik file."}`, "Retrieval", query);
+        } catch (e) {
+            return this.createResponse("Gagal akses filesystem.", "Error", query);
+        }
+    }
+
+    private static handleDeepRead(query: string): any {
+        const match = query.match(/([a-zA-Z0-9._-]+\.(ts|js|json|md|txt|sh|py|db))/);
+        if (!match) return this.createResponse("Sebutkan nama file.", "Error", query);
+        const fileName = match[1];
+        const findCmd = `find "/sdcard/Buku saya/Fauzan engine/NeoEngine" -name "${fileName}" | head -n 1`;
+        try {
+            const fullPath = execSync(findCmd).toString().trim();
+            if (fullPath) {
+                const content = fs.readFileSync(fullPath, 'utf-8').substring(0, 2000);
+                return this.createResponse(`[DEEP_READ] ${fileName}:\n\n${content}`, "Reading", query);
+            }
+            return this.createResponse("File tidak ditemukan.", "Error", query);
+        } catch (e) { return this.createResponse("Error membaca file.", "Error", query); }
+    }
+
+    private static createResponse(output: string, goal: string, input: string): ReasoningResult {
+        return {
+            finalAnswer: `ANSWER(VALID(${output}))`,
+            plan: { goal, steps: [{ id: Date.now(), type: "PROCESS" as any, description: output, input, output: "DONE" }] }
+        };
+    }
+
+    private static extractPrompt(input: string): string {
+        try {
+            const p = JSON.parse(input);
+            return (p.finalAnswer || p.command || input).replace(/^ANSWER\(VALID\((.*)\)\)$/, '$1');
+        } catch { return input; }
+    }
 }
