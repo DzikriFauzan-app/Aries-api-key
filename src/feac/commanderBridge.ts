@@ -1,3 +1,4 @@
+import { NeoCore } from "../synapse/reasoning/neoCore_v30";
 import { ReasoningResult } from "../core/reasoningTypes";
 import { AriesDispatcher } from "../core/ariesDispatcher";
 

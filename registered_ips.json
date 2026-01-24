@@ -1,4 +1,11 @@
 {
+  "SOVEREIGN_ROOT": [
+    {
+      "ip": "127.0.0.1",
+      "key": "Dzikri ayahnya ibrohim, ilyas, pembuat aries Sovereign",
+      "lastSeen": 1769263000000
+    }
+  ],
   "CORP_A": [
     {
       "ip": "8.8.8.8",

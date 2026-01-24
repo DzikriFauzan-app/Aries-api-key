@@ -59,7 +59,7 @@ class SovereignGateV28_1 {
 
         // 3. DISPATCHER
         const q = message.toLowerCase();
-        let agent = "reasoning/neoCore.ts";
+        let agent = "reasoning/neoCore_v28.ts";
         if (q.includes("baca") || q.includes("pdf")) agent = "reasoning/scholar.ts";
         else if (q.includes("scan") || q.includes("bug")) agent = "forensic/scanner.ts";
 
