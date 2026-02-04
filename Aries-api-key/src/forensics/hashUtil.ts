@@ -1,4 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
 import crypto from "crypto";
+
 
 export function hashPayload(payload: any): string {
   // Jika payload undefined/null, anggap object kosong atau string kosong

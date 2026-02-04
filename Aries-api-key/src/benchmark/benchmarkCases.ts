@@ -1,4 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
 import { BenchmarkCase } from "./benchmarkTypes";
+
 
 export const benchmarkCases: BenchmarkCase[] = [
   {

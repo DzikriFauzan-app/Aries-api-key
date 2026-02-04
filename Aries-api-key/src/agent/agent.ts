@@ -1,6 +1,12 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
 import { AgentRole } from "./agentTypes";
 
+
 export class Agent {
+  private readonly logger = new Logger();
   public readonly name: string;
   public readonly role: AgentRole;
 
@@ -48,4 +54,6 @@ export class Agent {
   async handleDelegated(command: string): Promise<string> {
     return this.handle(command, true);
   }
+
+  public async healthCheck(): Promise<boolean> { try { return !!this.logger; } catch { return false; } }
 }

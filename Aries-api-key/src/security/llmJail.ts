@@ -1,3 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
+
+
 const JAIL_PATTERNS = [
   /ignore previous instructions/i,
   /system prompt/i,

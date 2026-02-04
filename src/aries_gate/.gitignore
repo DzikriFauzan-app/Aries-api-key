@@ -1,0 +1,6 @@
+# ARIES Production Secrets
+.env
+*.log
+.aries_memory_*.json
+node_modules/
+dist/

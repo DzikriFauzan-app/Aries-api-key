@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aries-brain-v4
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: aries
+        image: aries-brain:v4.0
+        ports:
+        - containerPort: 3333
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aries-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 3333
+  selector:
+    app: aries-brain

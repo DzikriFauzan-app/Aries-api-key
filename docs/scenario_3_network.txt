@@ -1,0 +1,3 @@
+TUGAS: Jelaskan dan buatkan pseudocode untuk validasi posisi pemain 
+di sisi server (Server-side Validation) untuk mencegah 'Speed Hack' 
+dan 'Teleport Hack' pada game dengan 2000 pemain per zona.

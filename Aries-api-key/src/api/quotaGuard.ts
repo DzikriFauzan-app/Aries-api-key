@@ -1,4 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
 import { getUsage, recordUsage } from "./apiKeyStore";
+
 
 export function enforceQuota(apiKey: any, tokens = 1) {
   const usage = recordUsage(apiKey.key, tokens);

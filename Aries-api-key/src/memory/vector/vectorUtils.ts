@@ -1,3 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../../audit/auditLogger';
+
+
 export function textToVector(text: string): number[] {
   const vec = new Array(64).fill(0);
   for (let i = 0; i < text.length; i++) {

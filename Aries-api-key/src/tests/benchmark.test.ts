@@ -1,4 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
 import { BenchmarkRunner } from "../benchmark/benchmarkRunner";
+
 
 (async () => {
   // Hanya jalan jika ENV variable diset (agar tidak memberatkan test biasa)

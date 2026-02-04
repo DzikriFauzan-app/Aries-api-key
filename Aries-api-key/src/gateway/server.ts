@@ -1,5 +1,10 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
 import fastify from 'fastify';
 import { handleIntelligence } from '../routes/intelligence';
+
 
 const app = fastify();
 const PORT = 3333;

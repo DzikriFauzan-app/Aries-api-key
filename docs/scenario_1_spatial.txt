@@ -1,0 +1,4 @@
+TUGAS: Buatlah implementasi Spatial Partitioning (Grid-based atau Quadtree) 
+dalam C++ untuk menangani 10.000 entitas yang bergerak. 
+DATA: Setiap entitas memiliki ID (uint32_t) dan posisi (Vector3).
+STANDAR: Gunakan pendekatan Data-Oriented (SoA) dan pastikan cache-friendly.

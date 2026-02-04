@@ -4,3 +4,6 @@ node_modules/
 aries_neural_index.json
 node_modules/
 dist/
+aries_vault.json
+*.bak
+__pycache__/

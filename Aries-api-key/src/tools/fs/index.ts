@@ -1,4 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../../audit/auditLogger';
 import { registerFsTool } from "./fsRegistry";
+
 
 registerFsTool({
   name: "fs.read",

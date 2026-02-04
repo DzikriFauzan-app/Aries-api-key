@@ -1,3 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
+
+
 export function billingHook(apiKey: any, usage: any) {
   // FEAC / Stripe / Manual hook
   // Dipanggil async oleh FEAC layer

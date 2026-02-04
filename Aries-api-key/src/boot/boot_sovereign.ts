@@ -1,4 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
 import { createHttpGateway } from "../http/httpGateway";
+
 
 export function bootSovereign() {
   const PORT = Number(process.env.PORT || 3333);

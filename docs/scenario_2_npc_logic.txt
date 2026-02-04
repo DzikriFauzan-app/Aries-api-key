@@ -1,0 +1,6 @@
+TUGAS: Rancang sistem AI untuk NPC "Guardian" di game MMO.
+KONDISI: 
+1. Jika Player dalam radius 10m -> Agresif.
+2. Jika HP < 20% -> Cari healer terdekat.
+3. Jika Player keluar radius -> Kembali ke titik spawn.
+STANDAR: Berikan kode dalam bentuk State Pattern atau Behavior Tree yang efisien.

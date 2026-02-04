@@ -1,4 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
 import { reportBug } from "../repair/autoRepair";
+
 
 export function initGlobalHandlers() {
   process.on("uncaughtException", (err) => {

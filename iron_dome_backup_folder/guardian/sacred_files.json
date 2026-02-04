@@ -1,0 +1,4 @@
+{
+  "src/aries_gate/sse_chat.py": "CORE_LOGIC",
+  "src/core/kernel.py": "SYSTEM_KERNEL"
+}

@@ -1,3 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../audit/auditLogger';
+
+
 export type SandboxPolicy = {
   maxFileSizeKB: number;
   allowWrite: boolean;

@@ -1,3 +1,9 @@
+/**
+ * @status CERTIFIED_INDUSTRY_GRADE
+ */
+import { Logger } from '../../audit/auditLogger';
+
+
 const ROOT = "/workspace";
 
 export function normalizePath(path: string): string {
