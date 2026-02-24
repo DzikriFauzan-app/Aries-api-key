@@ -1,0 +1,162 @@
+import os
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from dotenv import load_dotenv
+
+from NeoEngine.aries.aries_perfect import AriesPerfectBrain
+
+# Load environment (API key milik Aries Gate)
+load_dotenv()
+
+ARIES_API_KEY = os.getenv("ARIES_API_KEY")
+if not ARIES_API_KEY:
+    raise RuntimeError("ARIES_API_KEY_NOT_LOADED")
+
+app = FastAPI(title="Aries Gate v1.0")
+
+brain = AriesPerfectBrain()
+brain.build_world()
+
+def gate_output(output):
+    if isinstance(output, str):
+        return output
+    raise ValueError("NO_PUBLIC_REASONING_OUTPUT")
+
+@app.post("/chat/completions")
+async def chat_completions(request: Request):
+    try:
+        auth = request.headers.get("Authorization")
+        if auth != f"Bearer {ARIES_API_KEY}":
+            return JSONResponse(
+                status_code=401,
+                content={"error": "UNAUTHORIZED"}
+            )
+
+        data = await request.json()
+        messages = data.get("messages", [])
+
+        raw_output = brain.think(messages)
+        final_answer = gate_output(raw_output)
+
+        return JSONResponse({
+            "id": "aries-001",
+            "object": "chat.completion",
+            "model": "aries-perfect",
+            "choices": [
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": final_answer
+                    }
+                }
+            ]
+        })
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+@app.get("/health")
+async def health():
+    return {"status": "OK", "brain": "aries-perfect"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=3333)
+
+# === INTERNAL TEST BYPASS (ADD-ONLY) ===
+def _internal_request_allowed(request):
+    client = request.client.host if request.client else None
+    return client in ("127.0.0.1", "localhost")
+
+# === PATCH AUTH LOGIC (ADD-ONLY WRAPPER) ===
+_original_chat = chat_completions
+
+@app.post("/chat/completions_internal")
+async def chat_completions_internal(request: Request):
+    auth = request.headers.get("Authorization")
+
+    if auth != f"Bearer {ARIES_API_KEY}":
+        if not _internal_request_allowed(request):
+            return JSONResponse(
+                status_code=401,
+                content={"error": "UNAUTHORIZED"}
+            )
+
+    data = await request.json()
+    messages = data.get("messages", [])
+
+    raw_output = brain.think(messages)
+    final_answer = gate_output(raw_output)
+
+    return JSONResponse({
+        "id": "aries-001",
+        "object": "chat.completion",
+        "model": "aries-perfect",
+        "choices": [
+            {"message": {"role": "assistant", "content": final_answer}}
+        ]
+    })
+# === PATCH AUTH LOGIC (ADD-ONLY WRAPPER) ===
+_original_chat = chat_completions
+
+@app.post("/chat/completions_internal")
+async def chat_completions_internal(request: Request):
+    auth = request.headers.get("Authorization")
+    if auth != f"Bearer {ARIES_API_KEY}":
+        if not _internal_request_allowed(request):
+            return JSONResponse(
+                status_code=401,
+                content={"error": "UNAUTHORIZED"}
+            )
+    data = await request.json()
+    messages = data.get("messages", [])
+
+    raw_output = brain.think(messages)
+    final_answer = gate_output(raw_output)
+
+    return JSONResponse({
+        "id": "aries-001",
+        "object": "chat.completion",
+        "model": "aries-perfect",
+        "choices": [
+            {"message": {"role": "assistant", "content": final_answer}}
+        ]
+    })
+
+# === INTERNAL TEST BYPASS FUNCTION ===
+def _internal_request_allowed(request):
+    client = request.client.host if request.client else None
+    return client in ("127.0.0.1", "localhost")
+
+# === PATCH AUTH LOGIC (ADD-ONLY WRAPPER) ===
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@app.post("/chat/completions_internal")
+async def chat_completions_internal(request: Request):
+    auth = request.headers.get("Authorization")
+    if auth != f"Bearer {ARIES_API_KEY}":
+        if not _internal_request_allowed(request):
+            return JSONResponse(
+                status_code=401,
+                content={"error": "UNAUTHORIZED"}
+            )
+
+    data = await request.json()
+    messages = data.get("messages", [])
+    raw_output = brain.think(messages)
+    final_answer = gate_output(raw_output)
+
+    return JSONResponse({
+        "id": "aries-001",
+        "object": "chat.completion",
+        "model": "aries-perfect",
+        "choices": [
+            {"message": {"role": "assistant", "content": final_answer}}
+        ]
+    })
+
+# === END OF PATCH ===

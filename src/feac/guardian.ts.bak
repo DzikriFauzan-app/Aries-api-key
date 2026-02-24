@@ -1,0 +1,67 @@
+import fs from 'fs';
+import path from 'path';
+
+const VITAL_PATHS = [
+    path.join(process.env.HOME || "", "Aries-api-key/src/synapse"),
+    path.join(process.env.HOME || "", "Aries-api-key/src/feac")
+];
+
+function getQualityScore(code: string): number {
+    const highLevel = ["try", "catch", "async", "await", "import", "interface", "class", "Promise", "const", "let"];
+    let score = 0;
+    highLevel.forEach(ind => {
+        const matches = code.match(new RegExp(ind, "g"));
+        if (matches) score += matches.length * 15;
+    });
+    const lines = code.split('\n').filter(l => l.trim().length > 0).length;
+    return score + (lines * 5);
+}
+
+console.log("🛡️ [SOVEREIGN_V30]: Hukum Evolusi Progresif (+10 Pts) Aktif.");
+
+VITAL_PATHS.forEach(dir => {
+    if (!fs.existsSync(dir)) return;
+    fs.watch(dir, { recursive: true }, (event, filename) => {
+        if (event === 'change' && filename && !filename.endsWith('.bak')) {
+            const filePath = path.join(dir, filename);
+            const backupPath = filePath + ".bak";
+
+            setTimeout(() => {
+                try {
+                    const newCode = fs.readFileSync(filePath, 'utf-8');
+                    const newScore = getQualityScore(newCode);
+
+                    // 1. CEK BATAS BAWAH (FLOOR 100)
+                    if (newScore < 100) {
+                        console.log(`🛑 [REJECTED]: Skor ${newScore} < 100. Standar terlalu rendah!`);
+                        if (fs.existsSync(backupPath)) fs.writeFileSync(filePath, fs.readFileSync(backupPath, 'utf-8'));
+                        return;
+                    }
+
+                    if (fs.existsSync(backupPath)) {
+                        const oldCode = fs.readFileSync(backupPath, 'utf-8');
+                        const oldScore = getQualityScore(oldCode);
+
+                        // 2. CEK DEGRADASI TAJAM (-30 POIN)
+                        if (newScore <= oldScore - 30) {
+                            console.log(`🛑 [SABOTASE]: Penurunan kualitas drastis terdeteksi (${newScore} vs ${oldScore}). ROLLBACK!`);
+                            fs.writeFileSync(filePath, oldCode);
+                        } 
+                        // 3. CEK SYARAT EVOLUSI (+10 POIN)
+                        else if (newScore < oldScore + 10) {
+                            console.log(`⚠️ [HOLD]: Kode baru tidak cukup signifikan. Butuh +10 poin evolusi. (Current: ${newScore-oldScore} pts)`);
+                            fs.writeFileSync(filePath, oldCode);
+                        } 
+                        else {
+                            console.log(`🚀 [EVOLUTION_ACCEPTED]: Skor naik ke ${newScore}. Standar baru ditetapkan.`);
+                            fs.writeFileSync(backupPath, newCode);
+                        }
+                    } else {
+                        fs.writeFileSync(backupPath, newCode);
+                        console.log(`📡 [REGISTERED]: Baseline awal ${filename} (Skor: ${newScore}).`);
+                    }
+                } catch (e) {}
+            }, 150);
+        }
+    });
+});

@@ -1,9 +1,5 @@
-node_modules/
-*.log
-.env
-aries_neural_index.json
-node_modules/
-dist/
-aries_vault.json
-*.bak
+*.backup
+app_fixed_v*
+code_fingerprints.json
 __pycache__/
+*.log

@@ -1,3 +1,4 @@
+import ast
 from iron_dome.ast.parser import parse
 
 CRITICAL_CALLS = {

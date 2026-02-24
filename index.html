@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ARIES v5.1 Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { background: #0f172a; color: #38bdf8; font-family: monospace; padding: 20px; }
+        #chat { height: 400px; overflow-y: auto; border: 1px solid #1e293b; padding: 10px; margin-bottom: 10px; background: #020617; }
+        input { width: 80%; padding: 10px; background: #1e293b; border: none; color: white; }
+        button { padding: 10px; background: #38bdf8; border: none; cursor: pointer; font-weight: bold; }
+        .msg { margin-bottom: 10px; padding: 5px; border-left: 3px solid #38bdf8; }
+    </style>
+</head>
+<body>
+    <h2>🚀 ARIES PERFECT SYSTEM</h2>
+    <div id="chat"></div>
+    <input type="text" id="input" placeholder="Tanya rumus PhD...">
+    <button onclick="send()">KIRIM</button>
+
+    <script>
+        async function send() {
+            const input = document.getElementById('input');
+            const chat = document.getElementById('chat');
+            chat.innerHTML += `<div><b>User:</b> ${input.value}</div>`;
+            
+            const res = await fetch('http://localhost:3333/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: [{ role: 'user', content: input.value }] })
+            });
+            const data = await res.json();
+            chat.innerHTML += `<div class="msg"><b>Aries:</b> ${data.choices[0].message.content}</div>`;
+            input.value = '';
+            chat.scrollTop = chat.scrollHeight;
+        }
+    </script>
+</body>
+</html>

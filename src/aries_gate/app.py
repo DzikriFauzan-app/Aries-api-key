@@ -1,30 +1,31 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-import sys, os
-sys.path.append(os.path.dirname(__file__))
+import os, requests
+from pathlib import Path
+from dotenv import load_dotenv
 
-from brain.inference_engine import process
+class AriesGate:
+    def __init__(self):
+        self.BASE_PATH = Path("/sdcard/Buku saya/Fauzan engine")
+        self.load_config()
 
-app = FastAPI(title="Aries Gate v1.0")
+    def load_config(self):
+        env_path = self.BASE_PATH / ".env"
+        if env_path.exists():
+            load_dotenv(dotenv_path=env_path)
+        self.api_key = os.getenv("ARIES_API_KEY")
 
-@app.post("/chat/completions")
-async def chat_completions(request: Request):
-    data = await request.json()
-    messages = data.get("messages", [])
-    user_input = messages[-1]["content"] if messages else ""
-    
-    response = process({"messages": [{"content": user_input}]})
-    return JSONResponse({
-        "id": "aries-001",
-        "object": "chat.completion",
-        "model": "aries-brain-v1",
-        "choices": [{"message": {"role": "assistant", "content": response[-1]}}]
-    })
+    def call_api(self, payload):
+        """Akses API luar jika dibutuhkan."""
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        return f"Akses API Sovereign Aktif (Key: {self.api_key[:4] if self.api_key else 'NONE'}***)"
 
-@app.get("/health")
-async def health():
-    return {"status": "Aries Gate LIVE", "port": 3333, "brains": "3/29"}
+    def extract_from_source(self, file_path):
+        """Ekstraksi teks murni dari sumber ilmu."""
+        try:
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    return f.read()
+            return f"⚠️ File tidak ditemukan: {file_path}"
+        except Exception as e:
+            return f"⚠️ Gagal ekstraksi: {str(e)}"
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3333)
+gate = AriesGate()

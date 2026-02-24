@@ -1,15 +1,27 @@
-def process(logic_pool):
-    query = logic_pool["messages"][-1]["content"]
-    
-    # AUTO-ROUTE 3+ BRAINS (scalable ke 29)
-    brains = ['logic_math', 'teologi', 'astronomy_core']
-    for brain_name in brains:
-        try:
-            brain_module = __import__(brain_name)
-            result = brain_module.evaluate(query)
-            if result:
-                return [f"[{brain_name.upper()}]", result]
-        except Exception as e:
+import os
+
+# ============================================================
+# ARIES SENSORY STREAM
+# Fungsi: Indra murni
+# Tidak tahu makna, query, domain, atau tujuan
+# ============================================================
+
+def stream_file(path):
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            return f.readlines()
+    except:
+        return None
+
+
+def scan_sources(paths):
+    results = []
+    for base in paths:
+        if not os.path.exists(base):
             continue
-    
-    return ["🤖 ARIES: Math | Fiqh | Kosmologi aktif. Contoh: '3x+5=14'"]
+        for root, _, files in os.walk(base):
+            for name in files:
+                results.append(os.path.join(root, name))
+    return results
